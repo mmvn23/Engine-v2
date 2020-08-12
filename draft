@@ -1,0 +1,89 @@
+# TARGETS:
+# import data from excel: OK
+# cross data using a key OK
+# load YTD using objects
+# load YTD using arrays
+# calculate YTG based on yearly readjustments
+# load and save data using CSV
+# save date on a excel file
+# calculate savings
+# plot data
+
+import pandas as pd
+import numpy as np
+
+class Part_Number_Class:
+
+    def __init__(self,part_number_code,category= "", price_budget = 0,volume_budget = [0] * 12):
+        months_per_year = 12
+        start_var = [0] * months_per_year
+        self.part_number_code = part_number_code
+        self.category = category
+        self.price_budget = price_budget
+        self.price_YTD = start_var
+        self.price_YTG = start_var
+        self.volume_budget = volume_budget
+        self.volume_YTD = start_var
+        self.volume_YTG = start_var
+        self.part_number_ref = ""
+
+    def __str__(self):
+        part_number_string = "Part number code: {0}\n"\
+                             "Category: {1}\n"\
+                             "Price:\n"\
+                             "  Budget: {2}\n"\
+                             "  YTD:{3}\n"\
+                             "  YTG: {4}\n"\
+                             "Volume:\n" \
+                             "  Budget: {5}\n" \
+                             "  YTD:{6}\n" \
+                             "  YTG: {7}\n" \
+                             .format(self.part_number_code,self.category,self.price_budget,self.price_YTD,self.price_YTG,self.volume_budget,self.volume_YTD,self.volume_YTG)
+        return part_number_string
+
+    def update_YTD(self,price_YTD,volume_YTD):
+        self.price_YTD = price_YTD
+        self.volume_YTD = volume_YTD
+
+
+savingsFile = pd.ExcelFile(r'.\inputs\Test.xlsx')
+budget_raw_array = pd.read_excel(savingsFile,sheet_name="PAF")
+ytd_raw_array = pd.read_excel(savingsFile,sheet_name="YTD")
+ytg_raw_array = pd.read_excel(savingsFile,sheet_name="YTG")
+
+new_array_column_names = {"Price": "Bgt Pr", "v1_x": "Bgt v1", "v2_x": "Bgt v2", "v3_x": "Bgt v3", "v4_x": "Bgt v4"
+, "v5_x": "Bgt v5", "v6_x": "Bgt v6", "v7_x": "Bgt v7", "v8_x": "Bgt v8", "v9_x": "Bgt v9", "v10_x": "Bgt v10"
+, "v11_x": "Bgt v11", "v12_x": "Bgt v12"}
+master_data_array.rename(columns=new_array_column_names)
+print(master_data_array.columns)
+
+master_data_array = np.array(master_data_array)
+
+
+part_number_code_list = master_data_array[:,0]
+category_list = master_data_array[:,1]
+# budget information
+price_budget_list = master_data_array[:,2]
+volume_budget_list = master_data_array[:,[3,15]]
+# YTD information
+
+# creating objects and assigning budgets
+part_number_amount = len(part_number_code_list)
+part_number_list = [Part_Number_Class(part_number_code_list[i],category_list[i],price_budget_list[i]) for i in range (part_number_amount)]
+
+# assigning YTD and YTG
+month_report = 3
+price_YTD #next step is assigning columns from master data array
+volume_YTD
+price_YTG
+volume_YTG
+master_data_array
+
+for item in part_number_list:
+    item.update_YTD_and_YTG()
+    print(item)
+
+
+
+
+
