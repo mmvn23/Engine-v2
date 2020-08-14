@@ -12,6 +12,7 @@
 import pandas as pd
 import numpy as np
 
+
 class Part_Number_Class:
 
     def __init__(self,part_number_code,category= "", price_budget = 0,volume_budget = [0] * 12):
@@ -78,7 +79,8 @@ volume_budget_list = budget_raw_array[:,[3,14]]
 
 # creating objects and assigning budgets
 part_number_amount = len(part_number_code_list)
-part_number_list = [Part_Number_Class(part_number_code_list[i],category_list[i],price_budget_list[i]) for i in range (part_number_amount)]
+part_number_list = [Part_Number_Class(part_number_code_list[i],category_list[i],price_budget_list[i])
+                    for i in range (part_number_amount)]
 
 # for item in part_number_list:
 #     print(item)
@@ -93,16 +95,21 @@ price_YTD_list = ytd_raw_array[:,range(1,1+report_month)]
 volume_YTD_list = ytd_raw_array[:,range(13,13+report_month)]
 yhold_match = np.array(pd.read_excel(savingsFile,sheet_name="Yhold"))
 
-print(yhold_match)
-x=yhold_search("PN-027",yhold_match)
-print(x) # yholds is working, next step is to create new object with yhold reference
+for i in range(len(part_number_code_list_YTD)):
+    x = update_YTD_from_list_search(part_number_code_list_YTD[i],part_number_list,price_YTD_list[i,:],
+                                    volume_YTD_list[i,:])
+    if not(x):
+        part_number_code_from_yhold = yhold_search(part_number_code_list_YTD[i],yhold_match)
+        part_number_from_yhold = part_number_list_search(part_number_code_from_yhold,part_number_list)
+        category_from_yhold = part_number_from_yhold.category
+        price_budget_from_yhold = part_number_from_yhold.price_budget
+        part_number_add = Part_Number_Class(part_number_code_list_YTD[i],category_from_yhold,price_budget_from_yhold)
+        part_number_list.append(part_number_add)
+print(len(part_number_list))
+for i in range(len(part_number_list)):
+    print(i)
+    print(part_number_list[i])
 
-# for i in range(len(part_number_code_list_YTD)):
-#     x = update_YTD_from_list_search(part_number_code_list_YTD[i],part_number_list,price_YTD_list[i,:],volume_YTD_list[i,:])
-#     if not(x):
-#         part_number_list[i] =  part_number_list_search(YHOLDREFERENCEHERE,part_number_list)
-#     print(part_number_list[i])
-# print(ytd_raw_array)
 # print(part_number_list_YTD)
 
 #ytg_raw_array = np.array(pd.read_excel(savingsFile,sheet_name="YTG"))
