@@ -147,6 +147,18 @@ def array_to_attribute_ytg(code_list_ytg_lc, part_number_list_lc, price_ytg_list
                                             volume_ytg_list_lc[i, :], ytg_strategy[i], report_month)
 
 
+# def save_part_number_csv(columns, part_number, writer):
+#     my_data = {columns[0]: part_number.code}
+#     writer.writerow(dict_data)
+#
+#
+# def save_part_number_list_csv(file, columns, part_number_list):
+#     with open(file, 'w') as csvfile:
+#         writer = csv.DictWriter(csvfile, fieldnames=columns)
+#         writer.writeheader()
+#     for item_lc in part_number_list:
+#         save_part_number_csv(columns, item_lc, writer)
+
 # inputs
 report_month = 4
 savingsFile = pd.ExcelFile(r'.\inputs\Test.xlsx')
@@ -195,18 +207,27 @@ array_to_attribute_ytg(code_list_ytg, part_number_list, price_ytg_list, volume_y
 
 ########################################## OUTPUTS ############################################################
 # simple printing
-for i in range(len(part_number_list)):
-    print(part_number_list[i])
+# for i in range(len(part_number_list)):
+#     print(part_number_list[i])
 
-# with open(r'.\outputs\Part Number Report.csv', 'w', newline='') as file:
-#     a = 'Code'
-#     b = 'Category'
-#     c = 'Price Budget'
-#     d = 'Price YTD'
-#     fieldnames = [a, b, c, d]
-#     writer = csv.DictWriter(file, fieldnames=fieldnames)
-#
-#     writer.writeheader()
-#
-# for item in part_number_list:
-#     writer.writerow({a: item.code, b: item.category, c: item.price_budget, d: item.price_ytd})
+csv_file = r'.\outputs\Part Number Report.csv'
+
+a = 'Code'
+b = 'Category'
+c = 'Price Budget'
+
+csv_columns = [a, b, c]
+
+data_array = np.array(csv_columns)
+for item in part_number_list:
+    new_row = [item.code, item.category, item.price_budget]
+    data_array = np.vstack([data_array, new_row])
+
+print(data_array)
+myFile = open(csv_file, 'w')
+with myFile:
+    writer = csv.writer(myFile)
+    writer.writerows(data_array)
+
+
+# save_part_number_list_csv(csv_file, csv_columns, part_number_list)
