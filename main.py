@@ -142,6 +142,8 @@ frc_price_per_clmn = 'frc_price_per'
 frc_currency_clmn = 'frc_currency'
 frc_currency_report_clmn = 'report_frc_currency'
 
+# frc_price_as_bgt = 'frc_as_bgt_base_price
+# frc_price_as_act = 'frc_as_act_base_price
 frc_price_as_inf_base_price_clmn = 'frc_as_inf_base_price'
 frc_price_as_inf_inflation_clmn = 'frc_as_inf_inflation'
 frc_price_as_inf_month_clmn = 'frc_as_inf_month'
@@ -598,20 +600,42 @@ df_conv = fc.prepare_long_uom_ref_file(df_conv, df_wide_bgt[code_clmn], code_clm
 df_long_bgt = fc.include_predecessors(df_long_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn)
 
 ######################## Calculate monthly price forecast ########################
+frc_id_vars = [code_clmn, description_clmn, location_clmn, frc_currency_clmn, frc_price_uom_clmn, frc_price_per_clmn]
+
 ### as budget price
+
+desired_bgt_clmn_lt = [bgt_currency_clmn, bgt_uom_clmn, bgt_per_clmn, bgt_price_clmn]
+
+matching_tuple = {bgt_currency_clmn: frc_currency_clmn,
+                  bgt_uom_clmn: frc_price_uom_clmn,
+                  bgt_per_clmn: frc_price_per_clmn,
+                  bgt_price_clmn: frc_price_clmn}
+
+df_long_frc_as_bgt = fc.generate_price_curve_based_on_another_file(df_wide_frc_as_bgt, report_month+1, 12,
+                                                                   month_clmn, frc_price_clmn, code_clmn,
+                                                                   frc_strategy_column, frc_strategy_as_bgt,
+                                                                   df_long_bgt, desired_bgt_clmn_lt, matching_tuple)
+
 ### as avg actuals
+desired_act_clmn_lt = [act_currency_clmn, act_price_uom_clmn, act_price_per_clmn, act_price_clmn]
+df_long_frc_as_act = fc.generate_price_curve_based_on_another_file(df_wide_frc_as_act, report_month+1, 12,
+                                                                   month_clmn, frc_price_clmn, code_clmn,
+                                                                   frc_strategy_column, frc_strategy_as_act,
+                                                                   df_long_act, desired_act_clmn_lt, matching_tuple)
+
 ### as a constant
+df_long_frc_as_cnst = fc.generate_price_curve_based_on_constant(df_wide_frc_as_cnst, df_wide_frc_as_cnst[frc_price_clmn],
+                                                                report_month+1, 12, frc_id_vars, month_clmn,
+                                                                frc_price_clmn, code_clmn, frc_strategy_column,
+                                                                frc_strategy_as_cnst)
+
 ### as an inflation rate
+print(df_wide_frc_as_inf.columns)
+
 ### as a curve
-
-
-# wide to long
-frc_as_cvr_id_vars = [code_clmn, description_clmn, location_clmn, frc_currency_clmn, frc_price_uom_clmn,
-                      frc_price_per_clmn]
-df_long_frc_as_crv = fc.melt_and_index(df_wide_frc_as_crv, frc_as_cvr_id_vars, month_clmn, frc_price_clmn, code_clmn)
-# add column with forecast strategy
-df_long_frc_as_crv[frc_strategy_column] = frc_strategy_as_crv
-
+df_long_frc_as_crv = fc.generate_price_curve_based_on_curve(df_wide_frc_as_crv, frc_id_vars, month_clmn,
+                                                            frc_price_clmn, code_clmn, frc_strategy_column,
+                                                            frc_strategy_as_crv)
 
 ######################## Reorder columns ########################
 ### budget ###

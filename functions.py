@@ -203,3 +203,52 @@ def include_single_predecessor(old_df_bgt, df_pred, pred_code_clmn, code_clmn, m
     new_df_bgt = new_df_bgt.append(add_row)
 
     return new_df_bgt
+
+
+def generate_price_curve_based_on_constant(old_dataframe, value_list, start_month, end_month, df_id_vars, month_clmn,
+                                           price_clmn, code_clmn, strategy_clmn, strategy_str):
+    month_list = range(start_month, end_month+1)
+    new_dataframe = old_dataframe
+    new_dataframe.rename(columns={price_clmn: str(month_list[0])}, inplace=True)
+
+    for item in month_list:
+        new_dataframe[str(item)] = value_list
+
+    new_dataframe = generate_price_curve_based_on_curve(old_dataframe, df_id_vars, month_clmn, price_clmn, code_clmn,
+                                                        strategy_clmn, strategy_str)
+
+    return new_dataframe
+
+
+def generate_price_curve_based_on_curve(old_dataframe, df_id_vars, month_clmn, price_clmn, code_clmn, strategy_clmn,
+                                        strategy_str):
+    # wide to long
+    new_dataframe = melt_and_index(old_dataframe, df_id_vars, month_clmn, price_clmn, code_clmn)
+    # add column with forecast strategy
+    new_dataframe[strategy_clmn] = strategy_str
+
+    return new_dataframe
+
+
+def generate_price_curve_based_on_another_file(old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
+                                               strategy_clmn, strategy_str, ref_file, ref_clmn_lt, matching_tuple):
+    # forecast as a budget file
+    old_df_clmn_lt = old_dataframe.columns
+    month_list = range(start_month, end_month + 1)
+    wide_dataframe = old_dataframe
+    value = 0
+
+    for item in month_list:
+        wide_dataframe[str(item)] = value
+
+    long_dataframe = melt_and_index(wide_dataframe, old_df_clmn_lt, month_clmn, price_clmn, code_clmn)
+    long_dataframe.drop(columns=price_clmn, inplace=True)
+
+    # budget file
+    ref_data = ref_file.filter(items=ref_clmn_lt, axis=1)
+    ref_data.rename(columns=matching_tuple, inplace=True)
+
+    new_dataframe = long_dataframe.merge(ref_data, how='left', left_index=True, right_index=True)
+    new_dataframe[strategy_clmn] = strategy_str
+
+    return new_dataframe
