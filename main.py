@@ -4,7 +4,7 @@ import functions as fc
 # List of inputs (excel files):
 #   1) Budget - OK
 #   2) Actuals - OK
-#   3) Forecast - Stopped here
+#   3) Forecast - OK
 #         as budget price
 #         as avg actuals
 #         as a constant
@@ -126,6 +126,8 @@ act_error_str = "\nAct file:\n"
 
 ### forecast ###
 filename_frc = './inputs/YTG.xlsx'
+filename_frc_csv = './outputs/forecast {0}-{1}.csv'.format(Fiscal_Year, report_month)
+
 sheet_frc_vol = 'Volume'
 sheet_frc_as_bgt = 'Budget'
 sheet_frc_as_act = 'YTD'
@@ -134,7 +136,9 @@ sheet_frc_as_inf = 'Inflation rate'
 sheet_frc_as_crv = 'Price curve'
 
 frc_vol_uom_report_clmn = 'report_frc_volume_uom'
+frc_vol_uom_clmn = 'frc_volume_uom'
 frc_vol_per_clmn = 'frc_volume_per_uom'
+frc_vol_clmn = 'frc_volume'
 frc_price_clmn = 'frc_price'
 frc_price_uom_report_clmn = 'report_frc_price_uom'
 frc_price_uom_clmn = 'frc_price_uom'
@@ -142,15 +146,13 @@ frc_price_per_clmn = 'frc_price_per'
 frc_currency_clmn = 'frc_currency'
 frc_currency_report_clmn = 'report_frc_currency'
 
-# frc_price_as_bgt = 'frc_as_bgt_base_price
-# frc_price_as_act = 'frc_as_act_base_price
 frc_price_as_inf_base_price_clmn = 'frc_as_inf_base_price'
 frc_price_as_inf_inflation_clmn = 'frc_as_inf_inflation'
 frc_price_as_inf_month_clmn = 'frc_as_inf_month'
 
 frc_strategy_column = 'frc_strategy'
 frc_strategy_as_bgt = 'Budget'
-frc_strategy_as_act = 'YTD'
+frc_strategy_as_act = 'Avg actuals'
 frc_strategy_as_cnst = 'Constant'
 frc_strategy_as_inf = 'Inflation rate'
 frc_strategy_as_crv = 'Price curve'
@@ -171,6 +173,10 @@ price_frc_base_string = "P"
 df_wide_frc_as_crv_raw_clmn_expect_lt = fc.generate_wide_clmn_expected_list(df_wide_frc_as_crv_raw_clmn_expect_lt_base,
                                                                             report_month+1, 12,
                                                                             price_frc_base_string)
+
+df_long_frc_clmn_list = [description_clmn, category_clmn, location_clmn, frc_vol_clmn, frc_vol_per_clmn,
+                         frc_vol_uom_clmn,  frc_price_clmn, frc_price_per_clmn, frc_price_uom_clmn, frc_currency_clmn,
+                         frc_strategy_column]
 
 frc_vol_clmn_conversion_base = {df_wide_frc_vol_raw_clmn_expect_lt[0]: code_clmn,
                                 df_wide_frc_vol_raw_clmn_expect_lt[1]: location_report_clmn,
@@ -219,6 +225,26 @@ frc_as_crv_clmn_conversion = fc.generate_wide_clmn_conversion(frc_as_crv_clmn_co
 
 frc_error_str = "\nForecast file:\n"
 
+### baseline ###
+filename_bsl = './inputs/Baseline.xlsx'
+filename_bsl_csv = './outputs/baseline {0}.csv'.format(Fiscal_Year)
+df_bsl_raw_clmn_expect_lt = ['Part Number', 'Plant', 'Description', 'Baseline', 'Unity', ' 1 or 1,000?', 'FX']
+bsl_error_str = "\nPredecessor file:\n"
+bsl_price_clmn = 'bsl_price'
+bsl_price_uom_report_clmn = 'report_bsl_price_uom'
+bsl_price_uom_clmn = 'bsl_price_uom'
+bsl_price_per_clmn = 'bsl_price_per'
+bsl_currency_report_clmn = 'report_bsl_currency'
+bsl_currency_clmn = 'bsl_currency_per'
+
+bsl_clmns_conversion = {df_bsl_raw_clmn_expect_lt[0]: code_clmn,
+                        df_bsl_raw_clmn_expect_lt[1]: location_report_clmn,
+                        df_bsl_raw_clmn_expect_lt[2]: description_clmn,
+                        df_bsl_raw_clmn_expect_lt[3]: bsl_price_clmn,
+                        df_bsl_raw_clmn_expect_lt[4]: bsl_price_uom_report_clmn,
+                        df_bsl_raw_clmn_expect_lt[5]: bsl_price_per_clmn,
+                        df_bsl_raw_clmn_expect_lt[6]: bsl_currency_report_clmn}
+
 ### predecessor ###
 filename_pred = './inputs/yhold.xlsx'
 filename_pred_csv = './outputs/predecessors {0}-{1}.csv'.format(Fiscal_Year, report_month)
@@ -227,7 +253,7 @@ pred_error_str = "\nPredecessor file:\n"
 pred_clmns_conversion = {df_pred_raw_clmn_expect_lt[0]: pred_code_clmn,
                          df_pred_raw_clmn_expect_lt[1]: code_clmn}
 
-### uom and currency equalization ###
+### Uom and currency equalization ###
 filename_category_eq = './inputs/category equalization.xlsx'
 filename_location_eq = './inputs/plant equalization.xlsx'
 filename_currency_eq = './inputs/FX equalization.xlsx'
@@ -301,6 +327,9 @@ df_wide_frc_as_cnst = pd.read_excel(filename_frc, sheet_name=sheet_frc_as_cnst)
 df_wide_frc_as_inf = pd.read_excel(filename_frc, sheet_name=sheet_frc_as_inf)
 df_wide_frc_as_crv = pd.read_excel(filename_frc, sheet_name=sheet_frc_as_crv)
 
+## baseline ##
+df_bsl = pd.read_excel(filename_bsl)
+
 ## predecessor ##
 df_pred = pd.read_excel(filename_pred)
 
@@ -314,7 +343,7 @@ df_savings_type_equalizer = pd.read_excel(filename_savings_type_eq)
 ### conversion ###
 df_conv = pd.read_excel(filename_conv)
 
-#  forecast, baseline, and project mapping
+#  project mapping
 
 ######################## Check column integrity ########################
 ### budget ###
@@ -358,11 +387,13 @@ df_wide_frc_as_cnst = df_wide_frc_as_cnst.filter(items=df_wide_frc_as_cnst_raw_c
 df_wide_frc_as_inf = df_wide_frc_as_inf.filter(items=df_wide_frc_as_inf_raw_clmn_expect_lt, axis=1)
 df_wide_frc_as_crv = df_wide_frc_as_crv.filter(items=df_wide_frc_as_crv_raw_clmn_expect_lt, axis=1)
 
+## baseline ##
+df_bsl = df_bsl.filter(items=df_bsl_raw_clmn_expect_lt, axis=1)
 
 ## predecessor ##
 df_pred = df_pred.filter(items=df_pred_raw_clmn_expect_lt, axis=1)
 
-### Equalization ###
+### equalization ###
 df_category_equalizer = df_category_equalizer.filter(items=df_category_eq_raw_clmn_expect_lt, axis=1)
 df_location_equalizer = df_location_equalizer.filter(items=df_location_eq_raw_clmn_expect_lt, axis=1)
 df_currency_equalizer = df_currency_equalizer.filter(items=df_currency_eq_raw_clmn_expect_lt, axis=1)
@@ -381,6 +412,9 @@ df_conv = df_conv.filter(items=df_conv_raw_clmn_expect_lt, axis=1)
                                                error_msg)
 ### forecast ###
 # forecast files will be fully generated from scratch, therefore, there is not need to clean extra rows.
+
+## baseline ##
+[df_bsl, error_msg] = fc.clear_extra_rows(df_bsl, df_bsl_raw_clmn_expect_lt[0], bsl_error_str, error_msg)
 
 ## predecessor ##
 [df_pred, error_msg] = fc.clear_extra_rows(df_pred, df_pred_raw_clmn_expect_lt[0], pred_error_str, error_msg)
@@ -401,7 +435,6 @@ df_conv = df_conv.filter(items=df_conv_raw_clmn_expect_lt, axis=1)
 [df_savings_type_equalizer, error_msg] = fc.clear_extra_rows(df_savings_type_equalizer,
                                                              df_savings_type_eq_raw_clmn_expect_lt[0],
                                                              savings_type_eq_error_str, error_msg)
-
 
 ### conversion ###
 [df_conv, error_msg] = fc.clear_extra_rows(df_conv, df_conv_raw_clmn_expect_lt[0], conv_error_str, error_msg)
@@ -432,6 +465,10 @@ df_wide_frc_as_act.rename(columns=frc_as_act_clmn_conversion, inplace=True)
 df_wide_frc_as_cnst.rename(columns=frc_as_cnst_clmn_conversion, inplace=True)
 df_wide_frc_as_inf.rename(columns=frc_as_inf_clmn_conversion, inplace=True)
 df_wide_frc_as_crv.rename(columns=frc_as_crv_clmn_conversion, inplace=True)
+
+## baseline ##
+df_bsl.rename(columns=bsl_clmns_conversion, inplace=True) # filter non-desired columns
+df_bsl.set_index(keys=code_clmn, drop=False, inplace=True)
 
 ## predecessor ##
 df_pred.rename(columns=pred_clmns_conversion, inplace=True) # filter non-desired columns
@@ -500,7 +537,7 @@ df_conv.rename(columns=conv_clmns_conversion_base, inplace=True)
                                                  error_msg)
 
 [df_wide_frc_vol, error_msg] = fc.merge_and_drop(df_wide_frc_vol, df_uom_equalizer, frc_vol_uom_report_clmn,
-                                                 bgt_uom_report_clmn, act_volume_uom_clmn, code_clmn, frc_error_str,
+                                                 bgt_uom_report_clmn, frc_vol_uom_clmn, code_clmn, frc_error_str,
                                                  error_msg)
 
 # as budget
@@ -545,6 +582,16 @@ df_conv.rename(columns=conv_clmns_conversion_base, inplace=True)
 [df_wide_frc_as_crv, error_msg] = fc.merge_and_drop(df_wide_frc_as_crv, df_uom_equalizer, frc_price_uom_report_clmn,
                                                     bgt_uom_report_clmn, frc_price_uom_clmn, code_clmn, act_error_str,
                                                     error_msg)
+### baseline ###
+[df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_category_equalizer, category_report_clmn, category_report_clmn,
+                                        category_clmn, code_clmn, bsl_error_str, error_msg)
+[df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_location_equalizer, location_report_clmn, location_report_clmn,
+                                        location_clmn, code_clmn, bsl_error_str, error_msg)
+[df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_currency_equalizer, bsl_currency_report_clmn,
+                                        bgt_currency_report_clmn, bsl_currency_clmn, code_clmn, bsl_error_str,
+                                        error_msg)
+[df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_uom_equalizer, bsl_price_uom_report_clmn, bgt_uom_clmn,
+                                        bsl_price_uom_clmn, code_clmn, bsl_error_str, error_msg)
 
 ######################## From wide to long format ########################
 ### budget ###
@@ -565,10 +612,15 @@ df_long_price_act = fc.melt_and_index(df_wide_price_act, act_price_id_vars, mont
 df_long_price_act.drop([code_clmn, month_clmn], axis=1, inplace=True)
 df_long_act = df_long_volume_act.merge(right=df_long_price_act, left_index=True, right_index=True)
 
+### forecast volume ###
+
+frc_volume_id_vars = [code_clmn, description_clmn, location_clmn, frc_vol_uom_clmn, frc_vol_per_clmn]
+df_long_frc_vol = fc.melt_and_index(df_wide_frc_vol, frc_volume_id_vars, month_clmn, frc_vol_clmn, code_clmn)
+
 ######################## Convert data types ########################
+num_types = 'float'
 ### budget ###
 bgt_clmn_list = [bgt_volume_clmn, bgt_per_clmn]
-num_types = float
 bgt_conversion_error_string = bgt_error_str + " volume and per"
 
 [df_long_bgt, error_msg] = fc.clean_types(df_long_bgt, bgt_clmn_list, num_types, bgt_conversion_error_string, error_msg)
@@ -579,9 +631,13 @@ act_conversion_error_string = act_error_str + " volume, price and per"
 
 [df_long_act, error_msg] = fc.clean_types(df_long_act, act_clmn_list, num_types, act_conversion_error_string, error_msg)
 
+## baseline ##
+bsl_clmn_list = [bsl_price_clmn, bsl_price_per_clmn]
+bsl_error_string = bsl_error_str + " conversion"
+[df_bsl, error_msg] = fc.clean_types(df_bsl, bsl_clmn_list, num_types, bsl_error_string, error_msg)
+
 ### conversion ###
 conv_clmn_list = [conv_multiplier_clmn]
-num_types = float
 conv_error_string = conv_error_str + " conversion"
 [df_conv, error_msg] = fc.clean_types(df_conv, conv_clmn_list, num_types, conv_error_string, error_msg)
 
@@ -601,47 +657,73 @@ df_long_bgt = fc.include_predecessors(df_long_bgt, df_pred, pred_code_clmn, code
 
 ######################## Calculate monthly price forecast ########################
 frc_id_vars = [code_clmn, description_clmn, location_clmn, frc_currency_clmn, frc_price_uom_clmn, frc_price_per_clmn]
+frc_desired_clmn_list = [description_clmn, location_clmn, frc_currency_clmn, frc_price_uom_clmn, frc_price_per_clmn,
+                         frc_price_clmn, frc_strategy_column]
 
 ### as budget price
-
 desired_bgt_clmn_lt = [bgt_currency_clmn, bgt_uom_clmn, bgt_per_clmn, bgt_price_clmn]
+bgt_matching_tuple = {bgt_currency_clmn: frc_currency_clmn,
+                      bgt_uom_clmn: frc_price_uom_clmn,
+                      bgt_per_clmn: frc_price_per_clmn,
+                      bgt_price_clmn: frc_price_clmn}
 
-matching_tuple = {bgt_currency_clmn: frc_currency_clmn,
-                  bgt_uom_clmn: frc_price_uom_clmn,
-                  bgt_per_clmn: frc_price_per_clmn,
-                  bgt_price_clmn: frc_price_clmn}
-
-df_long_frc_as_bgt = fc.generate_price_curve_based_on_another_file(df_wide_frc_as_bgt, report_month+1, 12,
-                                                                   month_clmn, frc_price_clmn, code_clmn,
-                                                                   frc_strategy_column, frc_strategy_as_bgt,
-                                                                   df_long_bgt, desired_bgt_clmn_lt, matching_tuple)
+df_long_frc_as_bgt = fc.generate_price_curve_based_on_budget(df_wide_frc_as_bgt, report_month + 1, 12,
+                                                             month_clmn, frc_price_clmn, code_clmn,
+                                                             frc_strategy_column, frc_strategy_as_bgt,
+                                                             df_long_bgt, desired_bgt_clmn_lt, bgt_matching_tuple,
+                                                             frc_desired_clmn_list)
 
 ### as avg actuals
-desired_act_clmn_lt = [act_currency_clmn, act_price_uom_clmn, act_price_per_clmn, act_price_clmn]
-df_long_frc_as_act = fc.generate_price_curve_based_on_another_file(df_wide_frc_as_act, report_month+1, 12,
-                                                                   month_clmn, frc_price_clmn, code_clmn,
-                                                                   frc_strategy_column, frc_strategy_as_act,
-                                                                   df_long_act, desired_act_clmn_lt, matching_tuple)
+desired_act_clmn_lt = [act_currency_clmn, act_price_uom_clmn, act_price_per_clmn, act_price_clmn, act_volume_clmn]
+act_matching_tuple = {act_currency_clmn: frc_currency_clmn,
+                      act_price_uom_clmn: frc_price_uom_clmn,
+                      act_price_per_clmn: frc_price_per_clmn,
+                      act_price_clmn: frc_price_clmn}
+
+df_long_frc_as_act = fc.generate_price_curve_based_on_actuals(df_wide_frc_as_act, report_month + 1, 12,
+                                                              month_clmn, frc_price_clmn, code_clmn,
+                                                              frc_strategy_column, frc_strategy_as_act,
+                                                              df_long_act, desired_act_clmn_lt, act_matching_tuple,
+                                                              act_price_clmn, act_volume_clmn, frc_desired_clmn_list)
 
 ### as a constant
 df_long_frc_as_cnst = fc.generate_price_curve_based_on_constant(df_wide_frc_as_cnst, df_wide_frc_as_cnst[frc_price_clmn],
                                                                 report_month+1, 12, frc_id_vars, month_clmn,
                                                                 frc_price_clmn, code_clmn, frc_strategy_column,
-                                                                frc_strategy_as_cnst)
+                                                                frc_strategy_as_cnst, frc_desired_clmn_list)
 
 ### as an inflation rate
-print(df_wide_frc_as_inf.columns)
+df_long_frc_as_inf = fc.generate_price_curve_based_on_inflation(df_wide_frc_as_inf, report_month+1, 12, month_clmn,
+                                                                frc_price_clmn, code_clmn,
+                                                                frc_price_as_inf_base_price_clmn,
+                                                                frc_price_as_inf_inflation_clmn,
+                                                                frc_price_as_inf_month_clmn, frc_strategy_column,
+                                                                frc_strategy_as_inf, frc_desired_clmn_list)
 
 ### as a curve
 df_long_frc_as_crv = fc.generate_price_curve_based_on_curve(df_wide_frc_as_crv, frc_id_vars, month_clmn,
                                                             frc_price_clmn, code_clmn, frc_strategy_column,
-                                                            frc_strategy_as_crv)
+                                                            frc_strategy_as_crv, frc_desired_clmn_list)
+
+# unify all of them
+df_long_frc = df_long_frc_as_bgt
+df_long_frc = df_long_frc.append(df_long_frc_as_act)
+df_long_frc = df_long_frc.append(df_long_frc_as_cnst)
+df_long_frc = df_long_frc.append(df_long_frc_as_inf)
+df_long_frc = df_long_frc.append(df_long_frc_as_crv)
+
+df_long_frc_vol.drop(columns=[code_clmn, description_clmn, location_clmn, month_clmn], inplace=True)
+df_long_frc = df_long_frc.merge(df_long_frc_vol, how='inner', left_index=True, right_index=True)
+
+df_long_frc = fc.add_category_to_frc(df_long_frc, df_long_bgt, code_clmn, month_clmn, category_clmn)
 
 ######################## Reorder columns ########################
 ### budget ###
 df_long_bgt = df_long_bgt[df_long_bgt_clmn_list]
 ### actuals ###
 df_long_act = df_long_act[df_long_act_clmn_list]
+### forecast ###
+df_long_frc = df_long_frc[df_long_frc_clmn_list]
 
 ######################## Save data-frame on CSV ########################
 ### budget ###
@@ -649,6 +731,12 @@ df_long_bgt.to_csv(filename_bgt_csv)
 
 ### actuals ###
 df_long_act.to_csv(filename_act_csv)
+
+### forecast ###
+df_long_frc.to_csv(filename_frc_csv)
+
+### baseline ###
+df_bsl.to_csv(filename_bsl_csv)
 
 ## predecessor ##
 df_pred.to_csv(filename_pred_csv)

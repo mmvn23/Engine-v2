@@ -109,8 +109,9 @@ def clean_types(dataframe, cleaning_clmns, clmn_types, error_str, old_error_list
     old_index_list = dataframe.index
 
     for item in cleaning_clmns:
+        print(item)
         dataframe = dataframe[dataframe[item].apply(lambda x: not isinstance(x, str))]
-        dataframe[item].astype(clmn_types)
+        dataframe.loc[:, item] = pd.to_numeric(dataframe.loc[:, item])
 
     new_index_list = dataframe.index
     new_error_list = old_error_list
@@ -206,7 +207,7 @@ def include_single_predecessor(old_df_bgt, df_pred, pred_code_clmn, code_clmn, m
 
 
 def generate_price_curve_based_on_constant(old_dataframe, value_list, start_month, end_month, df_id_vars, month_clmn,
-                                           price_clmn, code_clmn, strategy_clmn, strategy_str):
+                                           price_clmn, code_clmn, strategy_clmn, strategy_str, desired_clmn_list):
     month_list = range(start_month, end_month+1)
     new_dataframe = old_dataframe
     new_dataframe.rename(columns={price_clmn: str(month_list[0])}, inplace=True)
@@ -215,23 +216,25 @@ def generate_price_curve_based_on_constant(old_dataframe, value_list, start_mont
         new_dataframe[str(item)] = value_list
 
     new_dataframe = generate_price_curve_based_on_curve(old_dataframe, df_id_vars, month_clmn, price_clmn, code_clmn,
-                                                        strategy_clmn, strategy_str)
+                                                        strategy_clmn, strategy_str, desired_clmn_list)
 
     return new_dataframe
 
 
 def generate_price_curve_based_on_curve(old_dataframe, df_id_vars, month_clmn, price_clmn, code_clmn, strategy_clmn,
-                                        strategy_str):
+                                        strategy_str, desired_clmn_list):
     # wide to long
     new_dataframe = melt_and_index(old_dataframe, df_id_vars, month_clmn, price_clmn, code_clmn)
     # add column with forecast strategy
     new_dataframe[strategy_clmn] = strategy_str
+    new_dataframe = new_dataframe.filter(items=desired_clmn_list, axis=1)
 
     return new_dataframe
 
 
-def generate_price_curve_based_on_another_file(old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
-                                               strategy_clmn, strategy_str, ref_file, ref_clmn_lt, matching_tuple):
+def generate_price_curve_based_on_budget(old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
+                                         strategy_clmn, strategy_str, ref_file, ref_clmn_lt, matching_tuple,
+                                         desired_clmn_list):
     # forecast as a budget file
     old_df_clmn_lt = old_dataframe.columns
     month_list = range(start_month, end_month + 1)
@@ -250,5 +253,104 @@ def generate_price_curve_based_on_another_file(old_dataframe, start_month, end_m
 
     new_dataframe = long_dataframe.merge(ref_data, how='left', left_index=True, right_index=True)
     new_dataframe[strategy_clmn] = strategy_str
+    new_dataframe = new_dataframe.filter(items=desired_clmn_list, axis=1)
+
+    return new_dataframe
+
+
+def generate_price_curve_based_on_actuals(old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
+                                          strategy_clmn, strategy_str, ref_file, ref_clmn_lt, matching_tuple,
+                                          act_price_clmn, act_volume_clmn, desired_clmn_list):
+    old_df_clmn_lt = old_dataframe.columns
+    month_list = range(start_month, end_month + 1)
+    wide_dataframe = old_dataframe
+    value = 0
+
+    for item in month_list:
+        wide_dataframe[str(item)] = value
+
+    long_dataframe = melt_and_index(wide_dataframe, old_df_clmn_lt, month_clmn, price_clmn, code_clmn)
+    long_dataframe.drop(columns=price_clmn, inplace=True)
+
+    # budget file
+    ref_data = ref_file.filter(items=ref_clmn_lt, axis=1)
+
+    df_avg = ref_data
+
+    ref_data = ref_data.drop(columns=act_price_clmn)
+    spend_clmn = 'act_spend'
+    df_avg[spend_clmn] = df_avg[act_volume_clmn] * df_avg[act_price_clmn]
+    # filter data (only code and PN)
+    df_avg = df_avg.groupby(level=code_clmn).sum()
+    df_avg[act_price_clmn] = df_avg[spend_clmn] / df_avg[act_volume_clmn]
+    df_avg = df_avg.filter(items=[act_price_clmn], axis=1)
+
+    df_avg.reset_index(inplace=True)
+    ref_data.reset_index(inplace=True)
+    ref_data = ref_data.drop(columns=month_clmn)
+
+    ref_data = ref_data.merge(df_avg, how='left', on=code_clmn)
+
+    long_dataframe = long_dataframe.drop(columns=[code_clmn, month_clmn])
+    long_dataframe.reset_index(inplace=True)
+
+    new_dataframe = long_dataframe.merge(ref_data, how='left', on=code_clmn)
+
+    new_dataframe.rename(columns=matching_tuple, inplace=True)
+    new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+
+    new_dataframe[strategy_clmn] = strategy_str
+    new_dataframe = new_dataframe.filter(items=desired_clmn_list, axis=1)
+
+    return new_dataframe
+
+
+def generate_price_curve_based_on_inflation(old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
+                                            base_price_clmn, inflation_clmn, inf_month_clmn, strategy_clmn,
+                                            strategy_str, desired_clmn_list):
+    # (old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
+    #  strategy_clmn, strategy_str, ref_file, ref_clmn_lt, matching_tuple,
+    #  act_price_clmn, act_volume_clmn):
+
+    # add column with inflated price
+    wide_dataframe = old_dataframe
+    inf_price_clmn = 'inf_price'
+    wide_dataframe[inf_price_clmn] = wide_dataframe[base_price_clmn] * (1 + wide_dataframe[inflation_clmn])
+
+
+    # create month columns from report month+1 until 12
+    old_df_clmn_lt = old_dataframe.columns
+    month_list = range(start_month, end_month + 1)
+    wide_dataframe = old_dataframe
+    value = 0
+
+    for item in month_list:
+        wide_dataframe[str(item)] = value
+
+    # wide to long
+    new_dataframe = melt_and_index(wide_dataframe, old_df_clmn_lt, month_clmn, price_clmn, code_clmn)
+    new_dataframe.drop(columns=price_clmn, inplace=True)
+
+    month_clmn2 = 'month 2'
+    new_dataframe.rename(columns={month_clmn: month_clmn2}, inplace=True)
+    new_dataframe[month_clmn2] = new_dataframe[month_clmn2].astype(int)
+
+    new_dataframe.loc[new_dataframe[month_clmn2] < new_dataframe[inf_month_clmn], price_clmn] = new_dataframe[base_price_clmn]
+    new_dataframe.loc[new_dataframe[month_clmn2] >= new_dataframe[inf_month_clmn], price_clmn] = new_dataframe[inf_price_clmn]
+
+    new_dataframe[strategy_clmn] = strategy_str
+    new_dataframe = new_dataframe.filter(items=desired_clmn_list, axis=1)
+    # drop base price and inflation column
+
+    return new_dataframe
+
+
+def add_category_to_frc(old_dataframe, category_dataframe, code_clmn, month_clmn, category_clmn):
+
+    category_dataframe.drop(columns=[code_clmn, month_clmn], inplace=True)
+    category_dataframe.reset_index(inplace=True)
+    category_dataframe = category_dataframe.filter(items=[code_clmn, month_clmn, category_clmn], axis=1)
+    category_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+    new_dataframe = old_dataframe.merge(category_dataframe, how='inner', left_index=True, right_index=True)
 
     return new_dataframe
