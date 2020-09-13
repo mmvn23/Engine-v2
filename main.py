@@ -228,14 +228,14 @@ frc_error_str = "\nForecast file:\n"
 ### baseline ###
 filename_bsl = './inputs/Baseline.xlsx'
 filename_bsl_csv = './outputs/baseline {0}.csv'.format(Fiscal_Year)
-df_bsl_raw_clmn_expect_lt = ['Part Number', 'Plant', 'Description', 'Baseline', 'Unity', ' 1 or 1,000?', 'FX']
-bsl_error_str = "\nPredecessor file:\n"
+df_bsl_raw_clmn_expect_lt = ['Part Number', 'Plant', 'Description', 'Baseline', 'Unity', '1 or 1,000? ', 'FX']
+bsl_error_str = "\nBaseline file:\n"
 bsl_price_clmn = 'bsl_price'
 bsl_price_uom_report_clmn = 'report_bsl_price_uom'
 bsl_price_uom_clmn = 'bsl_price_uom'
 bsl_price_per_clmn = 'bsl_price_per'
 bsl_currency_report_clmn = 'report_bsl_currency'
-bsl_currency_clmn = 'bsl_currency_per'
+bsl_currency_clmn = 'bsl_currency'
 
 bsl_clmns_conversion = {df_bsl_raw_clmn_expect_lt[0]: code_clmn,
                         df_bsl_raw_clmn_expect_lt[1]: location_report_clmn,
@@ -583,8 +583,6 @@ df_conv.rename(columns=conv_clmns_conversion_base, inplace=True)
                                                     bgt_uom_report_clmn, frc_price_uom_clmn, code_clmn, act_error_str,
                                                     error_msg)
 ### baseline ###
-[df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_category_equalizer, category_report_clmn, category_report_clmn,
-                                        category_clmn, code_clmn, bsl_error_str, error_msg)
 [df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_location_equalizer, location_report_clmn, location_report_clmn,
                                         location_clmn, code_clmn, bsl_error_str, error_msg)
 [df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_currency_equalizer, bsl_currency_report_clmn,
@@ -592,7 +590,7 @@ df_conv.rename(columns=conv_clmns_conversion_base, inplace=True)
                                         error_msg)
 [df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_uom_equalizer, bsl_price_uom_report_clmn, bgt_uom_clmn,
                                         bsl_price_uom_clmn, code_clmn, bsl_error_str, error_msg)
-
+print(error_msg)
 ######################## From wide to long format ########################
 ### budget ###
 bgt_id_vars = [code_clmn, description_clmn, category_clmn, location_clmn, bgt_price_clmn, bgt_currency_clmn,
@@ -623,23 +621,23 @@ num_types = 'float'
 bgt_clmn_list = [bgt_volume_clmn, bgt_per_clmn]
 bgt_conversion_error_string = bgt_error_str + " volume and per"
 
-[df_long_bgt, error_msg] = fc.clean_types(df_long_bgt, bgt_clmn_list, num_types, bgt_conversion_error_string, error_msg)
+[df_long_bgt, error_msg] = fc.clean_types(df_long_bgt, bgt_clmn_list, bgt_conversion_error_string, error_msg)
 
 ### actuals ###
 act_clmn_list = [act_volume_per_clmn, act_price_per_clmn, act_volume_clmn, act_price_clmn]
 act_conversion_error_string = act_error_str + " volume, price and per"
 
-[df_long_act, error_msg] = fc.clean_types(df_long_act, act_clmn_list, num_types, act_conversion_error_string, error_msg)
+[df_long_act, error_msg] = fc.clean_types(df_long_act, act_clmn_list, act_conversion_error_string, error_msg)
 
 ## baseline ##
 bsl_clmn_list = [bsl_price_clmn, bsl_price_per_clmn]
-bsl_error_string = bsl_error_str + " conversion"
-[df_bsl, error_msg] = fc.clean_types(df_bsl, bsl_clmn_list, num_types, bsl_error_string, error_msg)
+bsl_conversion_error_string = bsl_error_str + " conversion"
+[df_bsl, error_msg] = fc.clean_types(df_bsl, bsl_clmn_list, bsl_conversion_error_string, error_msg)
 
 ### conversion ###
 conv_clmn_list = [conv_multiplier_clmn]
 conv_error_string = conv_error_str + " conversion"
-[df_conv, error_msg] = fc.clean_types(df_conv, conv_clmn_list, num_types, conv_error_string, error_msg)
+[df_conv, error_msg] = fc.clean_types(df_conv, conv_clmn_list, conv_error_string, error_msg)
 
 ######################## Prepare conversion files ########################
 ### Expand conversion table to have a PN-from-to structure
@@ -652,7 +650,6 @@ df_conv = fc.prepare_long_uom_ref_file(df_conv, df_wide_bgt[code_clmn], code_clm
                                        conv_to_all_str)
 
 ######################## Include predecessor's data into budget ########################
-
 df_long_bgt = fc.include_predecessors(df_long_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn)
 
 ######################## Calculate monthly price forecast ########################
@@ -713,9 +710,20 @@ df_long_frc = df_long_frc.append(df_long_frc_as_inf)
 df_long_frc = df_long_frc.append(df_long_frc_as_crv)
 
 df_long_frc_vol.drop(columns=[code_clmn, description_clmn, location_clmn, month_clmn], inplace=True)
+
+df_long_frc = fc.fix_index(df_long_frc, code_clmn, month_clmn)
+df_long_frc_vol = fc.fix_index(df_long_frc_vol, code_clmn, month_clmn)
+
 df_long_frc = df_long_frc.merge(df_long_frc_vol, how='inner', left_index=True, right_index=True)
 
+df_long_bgt.drop(columns=[code_clmn, month_clmn], inplace=True)
+df_long_bgt = fc.fix_index(df_long_bgt, code_clmn, month_clmn)
+
+df_long_act.drop(columns=[code_clmn, month_clmn], inplace=True)
+df_long_act = fc.fix_index(df_long_act, code_clmn, month_clmn)
+
 df_long_frc = fc.add_category_to_frc(df_long_frc, df_long_bgt, code_clmn, month_clmn, category_clmn)
+
 
 ######################## Reorder columns ########################
 ### budget ###

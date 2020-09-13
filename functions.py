@@ -105,11 +105,10 @@ def melt_and_index(wide_dataframe, wide_vars, long_clmn, value_clmn, code_clmn):
     return long_dataframe
 
 
-def clean_types(dataframe, cleaning_clmns, clmn_types, error_str, old_error_list=""):
+def clean_types(dataframe, cleaning_clmns, error_str, old_error_list=""):
     old_index_list = dataframe.index
 
     for item in cleaning_clmns:
-        print(item)
         dataframe = dataframe[dataframe[item].apply(lambda x: not isinstance(x, str))]
         dataframe.loc[:, item] = pd.to_numeric(dataframe.loc[:, item])
 
@@ -178,11 +177,19 @@ def add_all_uom_fx_to_code(dataframe, base_dataframe, code, code_clmn, conv_to_a
 def include_predecessors(old_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn):
     new_df_bgt = old_df_bgt
     new_df_bgt[pred_code_clmn] = new_df_bgt[code_clmn]
+    new_df_bgt.drop(labels=[code_clmn, month_clmn], axis=1, inplace=True)
+    new_df_bgt.reset_index(inplace=True)
 
-    code_list = df_pred[code_clmn]
+    df_pred.drop(labels=code_clmn, axis=1, inplace=True)
+    # df_pred.reset_index(inplace=True)
+
+    code_list = df_pred.index
     for kk in range(0, len(code_list)):
         new_df_bgt = include_single_predecessor(new_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn,
                                                 code_list[kk])
+
+    new_df_bgt.set_index(keys=[code_clmn, month_clmn], drop=False, inplace=True)
+    # df_pred.reset_index(keys=code_clmn, drop=False, inplace=True)
 
     return new_df_bgt
 
@@ -191,9 +198,6 @@ def include_single_predecessor(old_df_bgt, df_pred, pred_code_clmn, code_clmn, m
     new_df_bgt = old_df_bgt
 
     bgt_pred = df_pred.at[new_code, pred_code_clmn]
-    #filter based on predecessor
-    #append this filterd item into dataframe
-    #change index and predecessor column
     bgt_pred_array = [12 * [bgt_pred],
                       ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']]
     bgt_pred_tuple = list(zip(*bgt_pred_array))
@@ -331,14 +335,15 @@ def generate_price_curve_based_on_inflation(old_dataframe, start_month, end_mont
     new_dataframe = melt_and_index(wide_dataframe, old_df_clmn_lt, month_clmn, price_clmn, code_clmn)
     new_dataframe.drop(columns=price_clmn, inplace=True)
 
-    month_clmn2 = 'month 2'
-    new_dataframe.rename(columns={month_clmn: month_clmn2}, inplace=True)
-    new_dataframe[month_clmn2] = new_dataframe[month_clmn2].astype(int)
+    new_dataframe.drop(columns=[code_clmn, month_clmn], inplace=True)
+    new_dataframe.reset_index(inplace=True)
+    new_dataframe[month_clmn] = new_dataframe[month_clmn].astype(int)
 
-    new_dataframe.loc[new_dataframe[month_clmn2] < new_dataframe[inf_month_clmn], price_clmn] = new_dataframe[base_price_clmn]
-    new_dataframe.loc[new_dataframe[month_clmn2] >= new_dataframe[inf_month_clmn], price_clmn] = new_dataframe[inf_price_clmn]
+    new_dataframe.loc[new_dataframe[month_clmn] < new_dataframe[inf_month_clmn], price_clmn] = new_dataframe[base_price_clmn]
+    new_dataframe.loc[new_dataframe[month_clmn] >= new_dataframe[inf_month_clmn], price_clmn] = new_dataframe[inf_price_clmn]
 
     new_dataframe[strategy_clmn] = strategy_str
+    new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
     new_dataframe = new_dataframe.filter(items=desired_clmn_list, axis=1)
     # drop base price and inflation column
 
@@ -347,10 +352,21 @@ def generate_price_curve_based_on_inflation(old_dataframe, start_month, end_mont
 
 def add_category_to_frc(old_dataframe, category_dataframe, code_clmn, month_clmn, category_clmn):
 
-    category_dataframe.drop(columns=[code_clmn, month_clmn], inplace=True)
     category_dataframe.reset_index(inplace=True)
     category_dataframe = category_dataframe.filter(items=[code_clmn, month_clmn, category_clmn], axis=1)
     category_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
     new_dataframe = old_dataframe.merge(category_dataframe, how='inner', left_index=True, right_index=True)
+
+    return new_dataframe
+
+
+def fix_index(old_dataframe, code_clmn, month_clmn):
+    new_dataframe = old_dataframe
+
+    # new_dataframe.drop(columns=[code_clmn, month_clmn], inplace=True)
+    new_dataframe.reset_index(inplace=True)
+    new_dataframe.loc[:, month_clmn] = pd.to_numeric(new_dataframe.loc[:, month_clmn])
+
+    new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
 
     return new_dataframe
