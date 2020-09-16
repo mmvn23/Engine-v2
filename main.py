@@ -10,7 +10,7 @@ import functions as fc
 #         as a constant
 #         as an inflation rate
 #         as a curve
-#   4) Baseline
+#   4) Baseline - OK
 #   5) Predecessor - OK
 #   6) UoM and FX equalization - OK
 #   7) UoM and FX conversions - OK
@@ -228,14 +228,16 @@ frc_error_str = "\nForecast file:\n"
 ### baseline ###
 filename_bsl = './inputs/Baseline.xlsx'
 filename_bsl_csv = './outputs/baseline {0}.csv'.format(Fiscal_Year)
-df_bsl_raw_clmn_expect_lt = ['Part Number', 'Plant', 'Description', 'Baseline', 'Unity', '1 or 1,000? ', 'FX']
+df_bsl_raw_clmn_expect_lt = ['Part Number', 'Plant', 'Description', 'Baseline', 'Unity', '1 or 1,000? ', 'FX', 'Last FY']
 bsl_error_str = "\nBaseline file:\n"
 bsl_price_clmn = 'bsl_price'
+bsl_price_ly = 'bsl_average_price_last_year'
 bsl_price_uom_report_clmn = 'report_bsl_price_uom'
 bsl_price_uom_clmn = 'bsl_price_uom'
 bsl_price_per_clmn = 'bsl_price_per'
 bsl_currency_report_clmn = 'report_bsl_currency'
 bsl_currency_clmn = 'bsl_currency'
+
 
 bsl_clmns_conversion = {df_bsl_raw_clmn_expect_lt[0]: code_clmn,
                         df_bsl_raw_clmn_expect_lt[1]: location_report_clmn,
@@ -243,7 +245,8 @@ bsl_clmns_conversion = {df_bsl_raw_clmn_expect_lt[0]: code_clmn,
                         df_bsl_raw_clmn_expect_lt[3]: bsl_price_clmn,
                         df_bsl_raw_clmn_expect_lt[4]: bsl_price_uom_report_clmn,
                         df_bsl_raw_clmn_expect_lt[5]: bsl_price_per_clmn,
-                        df_bsl_raw_clmn_expect_lt[6]: bsl_currency_report_clmn}
+                        df_bsl_raw_clmn_expect_lt[6]: bsl_currency_report_clmn,
+                        df_bsl_raw_clmn_expect_lt[7]: bsl_price_ly}
 
 ### predecessor ###
 filename_pred = './inputs/yhold.xlsx'
@@ -253,42 +256,104 @@ pred_error_str = "\nPredecessor file:\n"
 pred_clmns_conversion = {df_pred_raw_clmn_expect_lt[0]: pred_code_clmn,
                          df_pred_raw_clmn_expect_lt[1]: code_clmn}
 
+### project mapping ###
+filename_pjmp = './inputs/project mapping.xlsx'
+filename_pjmp_csv = './outputs/project mapping {0}-{1}.csv'.format(Fiscal_Year, report_month)
+
+sheet_pjmp_pcent = '% based'
+sheet_pjmp_cnst = 'Value'
+sheet_pjmp_pj_list = 'project list'
+
+pjmp_code_clmn = 'project_code'
+pjmp_description_clmn = 'project_description'
+pjmp_pcent_clmn = 'project_percent_savings'
+pjmp_cnst_clmn = 'project_constant_savings'
+pjmp_report_uom_clmn = 'report_project_uom'
+pjmp_uom_clmn = 'project_uom'
+pjmp_per_clmn = 'project_per'
+pjmp_currency_report_clmn = 'report_project_currency'
+pjmp_currency_clmn = 'project_currency'
+pjmp_type_report_clmn = 'report_project_type'
+pjmp_type_clmn = 'project_type'
+pjmp_sav_assignment_type = 'savings_assignment_type'
+pjmp_pcent_str = 'percent'
+pjmp_cnst_str = 'constant'
+
+df_pjmp_pcent_raw_clmn_expect_lt = ['Part Number', 'Plant',	'Description',	'project code',	'project name',	'%']
+df_pjmp_cnst_raw_clmn_expect_lt = ['Part Number', 'Plant',	'Description',	'Pj code',	'Pj Name',	'Value',	'Unity',
+                                   '1 or 1,000? ',	'FX']
+df_pjmp_pj_list_raw_clmn_expect_lt = ['Code',	'Name',	'Type']
+
+df_pjmp_clmn_list = [code_clmn, description_clmn, location_clmn, pjmp_code_clmn, pjmp_description_clmn,
+                     pjmp_sav_assignment_type, pjmp_pcent_clmn, pjmp_cnst_clmn, pjmp_uom_clmn, pjmp_per_clmn,
+                     pjmp_currency_clmn]
+
+pjmp_pcent_clmns_conversion_base = {df_pjmp_pcent_raw_clmn_expect_lt[0]: code_clmn,
+                                    df_pjmp_pcent_raw_clmn_expect_lt[1]: location_report_clmn,
+                                    df_pjmp_pcent_raw_clmn_expect_lt[2]: description_clmn,
+                                    df_pjmp_pcent_raw_clmn_expect_lt[3]: pjmp_code_clmn,
+                                    df_pjmp_pcent_raw_clmn_expect_lt[4]: pjmp_description_clmn,
+                                    df_pjmp_pcent_raw_clmn_expect_lt[5]: pjmp_pcent_clmn}
+
+pjmp_cnst_clmns_conversion_base = {df_pjmp_cnst_raw_clmn_expect_lt[0]: code_clmn,
+                                   df_pjmp_cnst_raw_clmn_expect_lt[1]: location_report_clmn,
+                                   df_pjmp_cnst_raw_clmn_expect_lt[2]: description_clmn,
+                                   df_pjmp_cnst_raw_clmn_expect_lt[3]: pjmp_code_clmn,
+                                   df_pjmp_cnst_raw_clmn_expect_lt[4]: pjmp_description_clmn,
+                                   df_pjmp_cnst_raw_clmn_expect_lt[5]: pjmp_cnst_clmn,
+                                   df_pjmp_cnst_raw_clmn_expect_lt[6]: pjmp_report_uom_clmn,
+                                   df_pjmp_cnst_raw_clmn_expect_lt[7]: pjmp_per_clmn,
+                                   df_pjmp_cnst_raw_clmn_expect_lt[8]: pjmp_currency_report_clmn}
+
+pjmp_pj_list_clmns_conversion_base = {df_pjmp_pj_list_raw_clmn_expect_lt[0]: pjmp_code_clmn,
+                                      df_pjmp_pj_list_raw_clmn_expect_lt[1]: pjmp_description_clmn,
+                                      df_pjmp_pj_list_raw_clmn_expect_lt[2]: pjmp_type_report_clmn}
+
+pjmp_pcent_error_str = "\n Pj Mapping file (percent):\n"
+pjmp_cnst_error_str = "\n Pj Mapping file (constant):\n"
+pjmp_pj_list_error_str = "\n Pj Mapping file (project list):\n"
+
 ### Uom and currency equalization ###
 filename_category_eq = './inputs/category equalization.xlsx'
 filename_location_eq = './inputs/plant equalization.xlsx'
 filename_currency_eq = './inputs/FX equalization.xlsx'
 filename_uom_eq = './inputs/unity equalization.xlsx'
 filename_savings_type_eq = './inputs/sav type equalization.xlsx'
+filename_project_type_eq = './inputs/proj type equalization.xlsx'
 
 filename_category_eq_csv = './outputs/category equalization.csv'
 filename_location_eq_csv = './outputs/location equalization.csv'
 filename_currency_eq_csv = './outputs/currency equalization.csv'
 filename_uom_eq_csv = './outputs/uom equalization.csv'
 filename_savings_type_eq_csv = './outputs/savings type equalization.csv'
+filename_project_type_eq_csv = './outputs/project type equalization.csv'
 
 df_category_eq_raw_clmn_expect_lt = ['Report category', 'Standard category']
 df_location_eq_raw_clmn_expect_lt = ['Report plant', 'Standard plant']
 df_uom_eq_raw_clmn_expect_lt = ['Report UoM',	'Standard UoM']
 df_currency_eq_raw_clmn_expect_lt = ['Report FX', 'Standard FX']
 df_savings_type_eq_raw_clmn_expect_lt = ['Report type', 'Standard type']
+df_project_type_eq_raw_clmn_expect_lt = ['Report pj type',	'Standard pj type']
 
 category_equalizer_clmns_conversion = {df_category_eq_raw_clmn_expect_lt[0]: category_report_clmn,
-                                         df_category_eq_raw_clmn_expect_lt[1]: category_clmn}
+                                       df_category_eq_raw_clmn_expect_lt[1]: category_clmn}
 location_equalizer_clmns_conversion = {df_location_eq_raw_clmn_expect_lt[0]: location_report_clmn,
-                                         df_location_eq_raw_clmn_expect_lt[1]: location_clmn}
+                                       df_location_eq_raw_clmn_expect_lt[1]: location_clmn}
 uom_equalizer_clmns_conversion = {df_uom_eq_raw_clmn_expect_lt[0]: bgt_uom_report_clmn,
-                                    df_uom_eq_raw_clmn_expect_lt[1]: bgt_uom_clmn}
+                                  df_uom_eq_raw_clmn_expect_lt[1]: bgt_uom_clmn}
 currency_equalizer_clmns_conversion = {df_currency_eq_raw_clmn_expect_lt[0]: bgt_currency_report_clmn,
-                                         df_currency_eq_raw_clmn_expect_lt[1]: bgt_currency_clmn}
+                                       df_currency_eq_raw_clmn_expect_lt[1]: bgt_currency_clmn}
 savings_type_equalizer_clmns_conversion = {df_savings_type_eq_raw_clmn_expect_lt[0]: savings_type_report_clmn,
-                                             df_savings_type_eq_raw_clmn_expect_lt[1]: savings_type_clmn}
+                                           df_savings_type_eq_raw_clmn_expect_lt[1]: savings_type_clmn}
+project_type_equalizer_clmns_conversion = {df_project_type_eq_raw_clmn_expect_lt[0]: pjmp_type_report_clmn,
+                                           df_project_type_eq_raw_clmn_expect_lt[1]: pjmp_type_clmn}
 
 category_eq_error_str = "\nCat eq file:\n"
 location_eq_error_str = "\nLoc eq file:\n"
 currency_eq_error_str = "\nCur eq file:\n"
 uom_eq_error_str = "\nUom eq file:\n"
 savings_type_eq_error_str = "\nSv tp eq file:\n"
-
+project_type_eq_error_str = "\nPj tp eq file:\n"
 
 ### uom and currency conversion ###
 filename_conv = './inputs/Conversion table.xlsx'
@@ -302,9 +367,9 @@ conv_multiplier_clmn = "Multiplier"
 df_conv_raw_clmn_expect_lt = ['PN', 'From',	'To', 'Multiplier']
 
 conv_clmns_conversion_base = {df_conv_raw_clmn_expect_lt[0]: code_clmn,
-                                df_conv_raw_clmn_expect_lt[1]: conv_old_uom_clmn,
-                                df_conv_raw_clmn_expect_lt[2]: conv_new_uom_clmn,
-                                df_conv_raw_clmn_expect_lt[3]: conv_multiplier_clmn}
+                              df_conv_raw_clmn_expect_lt[1]: conv_old_uom_clmn,
+                              df_conv_raw_clmn_expect_lt[2]: conv_new_uom_clmn,
+                              df_conv_raw_clmn_expect_lt[3]: conv_multiplier_clmn}
 
 ref_uom_clmn = 'Reference UoM'
 ref_currency_clmn = 'Reference Currency'
@@ -339,11 +404,15 @@ df_location_equalizer = pd.read_excel(filename_location_eq)
 df_currency_equalizer = pd.read_excel(filename_currency_eq)
 df_uom_equalizer = pd.read_excel(filename_uom_eq)
 df_savings_type_equalizer = pd.read_excel(filename_savings_type_eq)
+df_project_type_equalizer = pd.read_excel(filename_project_type_eq)
 
 ### conversion ###
 df_conv = pd.read_excel(filename_conv)
 
-#  project mapping
+### project mapping ###
+df_pjmp_pcent = pd.read_excel(filename_pjmp, sheet_name=sheet_pjmp_pcent)
+df_pjmp_cnst = pd.read_excel(filename_pjmp, sheet_name=sheet_pjmp_cnst)
+df_pjmp_pj_list = pd.read_excel(filename_pjmp, sheet_name=sheet_pjmp_pj_list)
 
 ######################## Check column integrity ########################
 ### budget ###
@@ -399,9 +468,15 @@ df_location_equalizer = df_location_equalizer.filter(items=df_location_eq_raw_cl
 df_currency_equalizer = df_currency_equalizer.filter(items=df_currency_eq_raw_clmn_expect_lt, axis=1)
 df_uom_equalizer = df_uom_equalizer.filter(items=df_uom_eq_raw_clmn_expect_lt, axis=1)
 df_savings_type_equalizer = df_savings_type_equalizer.filter(items=df_savings_type_eq_raw_clmn_expect_lt, axis=1)
+df_project_type_equalizer = df_project_type_equalizer.filter(items=df_project_type_eq_raw_clmn_expect_lt, axis=1)
 
 ### conversion ###
 df_conv = df_conv.filter(items=df_conv_raw_clmn_expect_lt, axis=1)
+
+### project mapping ###
+df_pjmp_pcent = df_pjmp_pcent.filter(items=df_pjmp_pcent_raw_clmn_expect_lt, axis=1)
+df_pjmp_cnst = df_pjmp_cnst.filter(items=df_pjmp_cnst_raw_clmn_expect_lt, axis=1)
+df_pjmp_pj_list = df_pjmp_pj_list.filter(items=df_pjmp_pj_list_raw_clmn_expect_lt, axis=1)
 
 ######################## Drop extra rows ########################
 ### budget ###
@@ -435,9 +510,20 @@ df_conv = df_conv.filter(items=df_conv_raw_clmn_expect_lt, axis=1)
 [df_savings_type_equalizer, error_msg] = fc.clear_extra_rows(df_savings_type_equalizer,
                                                              df_savings_type_eq_raw_clmn_expect_lt[0],
                                                              savings_type_eq_error_str, error_msg)
+[df_project_type_equalizer, error_msg] = fc.clear_extra_rows(df_project_type_equalizer,
+                                                             df_project_type_eq_raw_clmn_expect_lt[0],
+                                                             project_type_eq_error_str, error_msg)
 
 ### conversion ###
 [df_conv, error_msg] = fc.clear_extra_rows(df_conv, df_conv_raw_clmn_expect_lt[0], conv_error_str, error_msg)
+
+### project mapping ###
+[df_pjmp_pcent, error_msg] = fc.clear_extra_rows(df_pjmp_pcent, df_pjmp_pcent_raw_clmn_expect_lt[0],
+                                                 pjmp_pcent_error_str, error_msg)
+[df_pjmp_cnst, error_msg] = fc.clear_extra_rows(df_pjmp_cnst, df_pjmp_cnst_raw_clmn_expect_lt[0],
+                                                pjmp_cnst_error_str, error_msg)
+[df_pjmp_pj_list, error_msg] = fc.clear_extra_rows(df_pjmp_pj_list, df_pjmp_pj_list_raw_clmn_expect_lt[0],
+                                                   pjmp_pj_list_error_str, error_msg)
 
 ######################## Change column names ########################
 ### budget ###
@@ -468,11 +554,11 @@ df_wide_frc_as_crv.rename(columns=frc_as_crv_clmn_conversion, inplace=True)
 
 ## baseline ##
 df_bsl.rename(columns=bsl_clmns_conversion, inplace=True) # filter non-desired columns
-df_bsl.set_index(keys=code_clmn, drop=False, inplace=True)
+# df_bsl.set_index(keys=code_clmn, drop=False, inplace=True)
 
 ## predecessor ##
 df_pred.rename(columns=pred_clmns_conversion, inplace=True) # filter non-desired columns
-df_pred.set_index(keys=code_clmn, drop=False, inplace=True)
+# df_pred.set_index(keys=code_clmn, drop=False, inplace=True)
 
 ### equalization ###
 df_category_equalizer.rename(columns=category_equalizer_clmns_conversion, inplace=True) # filter non-desired columns
@@ -491,12 +577,58 @@ df_savings_type_equalizer.rename(columns=savings_type_equalizer_clmns_conversion
 df_savings_type_equalizer = df_savings_type_equalizer.filter(items=[savings_type_report_clmn,
                                                                     savings_type_clmn], axis=1)
 
+df_project_type_equalizer.rename(columns=project_type_equalizer_clmns_conversion, inplace=True)
+df_project_type_equalizer = df_project_type_equalizer.filter(items=[pjmp_type_report_clmn, pjmp_type_clmn], axis=1)
+
 ### conversion ###
 df_conv.rename(columns=conv_clmns_conversion_base, inplace=True)
+
+### project mapping ###
+df_pjmp_pcent.rename(columns=pjmp_pcent_clmns_conversion_base, inplace=True)
+df_pjmp_cnst.rename(columns=pjmp_cnst_clmns_conversion_base, inplace=True)
+df_pjmp_pj_list.rename(columns=pjmp_pj_list_clmns_conversion_base, inplace=True)
+
+######################## Remove key duplicates ########################
+### budget ###
+df_wide_bgt = fc.remove_key_duplicates(df_wide_bgt, code_clmn)
+
+### actuals ###
+df_wide_volume_act = fc.remove_key_duplicates(df_wide_volume_act, code_clmn)
+df_wide_price_act = fc.remove_key_duplicates(df_wide_price_act, code_clmn)
+
+
+### forecast ###
+df_wide_frc_vol = fc.remove_key_duplicates(df_wide_frc_vol, code_clmn)
+df_wide_frc_as_bgt = fc.remove_key_duplicates(df_wide_frc_as_bgt, code_clmn)
+df_wide_frc_as_act = fc.remove_key_duplicates(df_wide_frc_as_act, code_clmn)
+df_wide_frc_as_cnst = fc.remove_key_duplicates(df_wide_frc_as_cnst, code_clmn)
+df_wide_frc_as_inf = fc.remove_key_duplicates(df_wide_frc_as_inf, code_clmn)
+df_wide_frc_as_crv = fc.remove_key_duplicates(df_wide_frc_as_crv, code_clmn)
+
+## baseline ##
+df_bsl = fc.remove_key_duplicates(df_bsl, code_clmn) #indexed
+
+## predecessor ##
+df_pred = fc.remove_key_duplicates(df_pred, pred_code_clmn) #indexed
+
+### equalization ###
+df_category_equalizer = fc.remove_key_duplicates(df_category_equalizer, category_report_clmn)
+df_location_equalizer = fc.remove_key_duplicates(df_location_equalizer, location_report_clmn)
+df_currency_equalizer = fc.remove_key_duplicates(df_currency_equalizer, bgt_currency_report_clmn)
+df_uom_equalizer = fc.remove_key_duplicates(df_uom_equalizer, bgt_uom_report_clmn)
+df_savings_type_equalizer = fc.remove_key_duplicates(df_savings_type_equalizer, savings_type_report_clmn)
+df_project_type_equalizer = fc.remove_key_duplicates(df_project_type_equalizer, pjmp_type_report_clmn)
+
+### conversion ###
+df_conv = fc.remove_key_duplicates(df_conv, conv_old_uom_clmn)
+
+### project mapping ###
+df_pjmp_pj_list = fc.remove_key_duplicates(df_pjmp_pj_list, pjmp_code_clmn)
 
 ######################## Terminology equalization ########################
 ### budget ###
 # filter NaN inside of merge and drop
+
 [df_wide_bgt, error_msg] = fc.merge_and_drop(df_wide_bgt, df_category_equalizer, category_report_clmn,
                                               category_report_clmn, category_clmn, code_clmn, bgt_error_str,
                                               error_msg)
@@ -588,14 +720,35 @@ df_conv.rename(columns=conv_clmns_conversion_base, inplace=True)
 [df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_currency_equalizer, bsl_currency_report_clmn,
                                         bgt_currency_report_clmn, bsl_currency_clmn, code_clmn, bsl_error_str,
                                         error_msg)
-[df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_uom_equalizer, bsl_price_uom_report_clmn, bgt_uom_clmn,
+
+[df_bsl, error_msg] = fc.merge_and_drop(df_bsl, df_uom_equalizer, bsl_price_uom_report_clmn, bgt_uom_report_clmn,
                                         bsl_price_uom_clmn, code_clmn, bsl_error_str, error_msg)
-print(error_msg)
+
+### project mapping ###
+[df_pjmp_pcent, error_msg] = fc.merge_and_drop(df_pjmp_pcent, df_location_equalizer, location_report_clmn,
+                                               location_report_clmn, location_clmn, code_clmn, pjmp_pcent_error_str,
+                                               error_msg)
+
+[df_pjmp_cnst, error_msg] = fc.merge_and_drop(df_pjmp_cnst, df_location_equalizer, location_report_clmn,
+                                              location_report_clmn, location_clmn, code_clmn, pjmp_cnst_error_str,
+                                              error_msg)
+[df_pjmp_cnst, error_msg] = fc.merge_and_drop(df_pjmp_cnst, df_uom_equalizer, pjmp_report_uom_clmn, bgt_uom_report_clmn,
+                                              pjmp_uom_clmn, code_clmn, act_error_str, error_msg)
+[df_pjmp_cnst, error_msg] = fc.merge_and_drop(df_pjmp_cnst, df_currency_equalizer, pjmp_currency_report_clmn,
+                                              bgt_currency_report_clmn, pjmp_currency_clmn, code_clmn,
+                                              pjmp_cnst_error_str, error_msg)
+
+[df_pjmp_pj_list, error_msg] = fc.merge_and_drop(df_pjmp_pj_list, df_project_type_equalizer, pjmp_type_report_clmn,
+                                                 pjmp_type_report_clmn, pjmp_type_clmn, pjmp_code_clmn,
+                                                 pjmp_pj_list_error_str, error_msg)
+
 ######################## From wide to long format ########################
 ### budget ###
 bgt_id_vars = [code_clmn, description_clmn, category_clmn, location_clmn, bgt_price_clmn, bgt_currency_clmn,
                bgt_uom_clmn, bgt_per_clmn, savings_type_clmn]
+
 df_long_bgt = fc.melt_and_index(df_wide_bgt, bgt_id_vars, month_clmn, bgt_volume_clmn, code_clmn)
+
 
 ### actuals ###
 act_volume_id_vars = [code_clmn, description_clmn, category_clmn, location_clmn, act_currency_clmn,
@@ -607,7 +760,6 @@ act_price_id_vars = [code_clmn, act_price_per_clmn, act_price_uom_clmn]
 df_long_price_act = fc.melt_and_index(df_wide_price_act, act_price_id_vars, month_clmn, act_price_clmn,
                                       code_clmn)
 
-df_long_price_act.drop([code_clmn, month_clmn], axis=1, inplace=True)
 df_long_act = df_long_volume_act.merge(right=df_long_price_act, left_index=True, right_index=True)
 
 ### forecast volume ###
@@ -639,6 +791,19 @@ conv_clmn_list = [conv_multiplier_clmn]
 conv_error_string = conv_error_str + " conversion"
 [df_conv, error_msg] = fc.clean_types(df_conv, conv_clmn_list, conv_error_string, error_msg)
 
+### project mapping ###
+pjmp_pcent_clmn_list = [pjmp_pcent_clmn]
+pjmp_pcent_error_string = pjmp_pcent_error_str + " conversion"
+[df_pjmp_pcent, error_msg] = fc.clean_types(df_pjmp_pcent, pjmp_pcent_clmn_list, pjmp_pcent_error_string, error_msg)
+
+pjmp_cnst_clmn_list = [pjmp_cnst_clmn]
+pjmp_cnst_error_string = pjmp_pcent_error_str + " conversion"
+[df_pjmp_cnst, error_msg] = fc.clean_types(df_pjmp_cnst, pjmp_cnst_clmn_list, pjmp_cnst_error_string, error_msg)
+
+pjmp_pj_list_clmn_list = [pjmp_cnst_clmn]
+pjmp_pj_list_error_string = pjmp_pj_list_error_str + " conversion"
+# pj_list dataframe does not have any numerical columns.
+
 ######################## Prepare conversion files ########################
 ### Expand conversion table to have a PN-from-to structure
 # Generate reference file
@@ -649,8 +814,24 @@ conv_to_all_str = 'All'
 df_conv = fc.prepare_long_uom_ref_file(df_conv, df_wide_bgt[code_clmn], code_clmn, conv_old_uom_clmn, conv_new_uom_clmn,
                                        conv_to_all_str)
 
+######################## Indexing ########################
+### baseline ###
+df_bsl.set_index(keys=[code_clmn], drop=True, inplace=True)
+
+## predecessor ##
+df_pred.set_index(keys=[code_clmn], drop=True, inplace=True)
+
+### equalization ###
+df_category_equalizer.set_index(keys=[category_report_clmn], drop=True, inplace=True)
+df_location_equalizer.set_index(keys=[location_clmn], drop=True, inplace=True)
+df_currency_equalizer.set_index(keys=[bgt_currency_clmn], drop=True, inplace=True)
+df_uom_equalizer.set_index(keys=[bgt_uom_report_clmn], drop=True, inplace=True)
+df_savings_type_equalizer.set_index(keys=[savings_type_report_clmn], drop=True, inplace=True)
+
+
 ######################## Include predecessor's data into budget ########################
 df_long_bgt = fc.include_predecessors(df_long_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn)
+print(df_long_bgt)
 
 ######################## Calculate monthly price forecast ########################
 frc_id_vars = [code_clmn, description_clmn, location_clmn, frc_currency_clmn, frc_price_uom_clmn, frc_price_per_clmn]
@@ -709,24 +890,45 @@ df_long_frc = df_long_frc.append(df_long_frc_as_cnst)
 df_long_frc = df_long_frc.append(df_long_frc_as_inf)
 df_long_frc = df_long_frc.append(df_long_frc_as_crv)
 
-df_long_frc_vol.drop(columns=[code_clmn, description_clmn, location_clmn, month_clmn], inplace=True)
+df_long_frc_vol.drop(columns=[description_clmn, location_clmn], inplace=True)
 
 df_long_frc = fc.fix_index(df_long_frc, code_clmn, month_clmn)
 df_long_frc_vol = fc.fix_index(df_long_frc_vol, code_clmn, month_clmn)
 
 df_long_frc = df_long_frc.merge(df_long_frc_vol, how='inner', left_index=True, right_index=True)
 
-df_long_bgt.drop(columns=[code_clmn, month_clmn], inplace=True)
 df_long_bgt = fc.fix_index(df_long_bgt, code_clmn, month_clmn)
 
-df_long_act.drop(columns=[code_clmn, month_clmn], inplace=True)
 df_long_act = fc.fix_index(df_long_act, code_clmn, month_clmn)
 
 df_long_frc = fc.add_category_to_frc(df_long_frc, df_long_bgt, code_clmn, month_clmn, category_clmn)
 
+######################## Calculate project list ########################
+# add column with savings assignement type
+df_pjmp_pcent[pjmp_sav_assignment_type] = pjmp_pcent_str
+df_pjmp_pcent[pjmp_per_clmn] = 'N/A'
+df_pjmp_pcent[pjmp_cnst_clmn] = 'N/A'
+df_pjmp_pcent[pjmp_uom_clmn] = 'N/A'
+df_pjmp_pcent[pjmp_currency_clmn] = 'N/A'
+
+df_pjmp_cnst[pjmp_sav_assignment_type] = pjmp_cnst_str
+df_pjmp_cnst[pjmp_pcent_clmn] = 'N/A'
+
+df_pjmp_pcent = df_pjmp_pcent[df_pjmp_clmn_list]
+df_pjmp_cnst = df_pjmp_cnst[df_pjmp_clmn_list]
+
+# merge pcent and const
+df_pjmp = df_pjmp_pcent
+df_pjmp = df_pjmp.append(df_pjmp_cnst)
+
+# add column with project savings type
+df_pjmp_pj_list.drop(columns=pjmp_description_clmn, inplace=True)
+df_pjmp = df_pjmp.merge(df_pjmp_pj_list, how='left', on=pjmp_code_clmn)
+df_pjmp.set_index(keys=code_clmn, drop=True, inplace=True)
 
 ######################## Reorder columns ########################
 ### budget ###
+df_long_bgt.set_index(keys=code_clmn, drop=True, inplace=True)
 df_long_bgt = df_long_bgt[df_long_bgt_clmn_list]
 ### actuals ###
 df_long_act = df_long_act[df_long_act_clmn_list]
@@ -759,11 +961,15 @@ df_savings_type_equalizer.to_csv(filename_savings_type_eq_csv)
 ### conversion ###
 df_conv.to_csv(filename_conv_csv)
 
+### project mapping ###
+df_pjmp.to_csv(filename_pjmp_csv)
+
 ## error msg ##
 error_file = open(file_name_error_msg, "w")
 error_file.write(error_msg)
 error_file.close()
 
+print(error_msg)
 #############################                   2) CALCULATION ENGINE                      #############################
 
 #############################                    3) REPORT GENERATOR                       #############################

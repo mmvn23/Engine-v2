@@ -2,11 +2,20 @@ import pandas as pd
 import numpy as np
 
 #############################                1) DATA CLEANING                     ######################################
+
+def remove_key_duplicates(old_dataframe, key_column):
+
+    new_dataframe = old_dataframe.drop_duplicates(key_column)
+
+    return new_dataframe
+
+
 def verify_integrity_from_code(code, clmn_list, new_error_list, function_error_str, error_str):
     is_part_of_clmn_list = code in clmn_list
     if not is_part_of_clmn_list:
         new_error_list = new_error_list + function_error_str + error_str.format(code)
     return new_error_list
+
 
 def verify_integrity_from_code_lt(clmn_expected_list, clmn_list, error_list, function_error_str, error_str):
     for item in clmn_expected_list:
@@ -72,8 +81,8 @@ def merge_and_drop(dataframe, df_equalizer, df_merge_clmn, equalizer_merge_clmn,
         dataframe.drop(equalizer_merge_clmn, axis=1, inplace=True)
     equalizer_clmn_names = df_equalizer.columns
     dataframe.rename(columns={equalizer_clmn_names[1]: new_clmn_name}, inplace=True)
-
     [dataframe, mid_error_list, are_list_equal] = clean_nan(dataframe, code_clmn)
+
     if not are_list_equal:
         error_str_nan = "PNs with problems: "
         aux = "--"
@@ -100,7 +109,7 @@ def clean_nan(dataframe, code_clmn):
 def melt_and_index(wide_dataframe, wide_vars, long_clmn, value_clmn, code_clmn):
     long_dataframe = pd.melt(frame=wide_dataframe, id_vars=wide_vars, value_vars=None, var_name=long_clmn,
                              value_name=value_clmn)
-    long_dataframe.set_index(keys=[code_clmn, long_clmn], drop=False, inplace=True)
+    long_dataframe.set_index(keys=[code_clmn, long_clmn], drop=True, inplace=True)
 
     return long_dataframe
 
@@ -128,10 +137,12 @@ def clear_extra_rows(dataframe, code_clmn, error_str, old_error_list=""):
     old_index_list = dataframe[code_clmn]
     dataframe.dropna(axis=0, inplace=True)
     new_index_list = dataframe[code_clmn]
+
     old_index_list = [str(item) for item in old_index_list]
     new_index_list = [str(item) for item in new_index_list]
 
     [missing_codes, are_lists_equal] = list_differential(old_index_list, new_index_list)
+
     new_error_list = old_error_list
 
     if not are_lists_equal:
@@ -176,35 +187,37 @@ def add_all_uom_fx_to_code(dataframe, base_dataframe, code, code_clmn, conv_to_a
 
 def include_predecessors(old_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn):
     new_df_bgt = old_df_bgt
-    new_df_bgt[pred_code_clmn] = new_df_bgt[code_clmn]
-    new_df_bgt.drop(labels=[code_clmn, month_clmn], axis=1, inplace=True)
-    new_df_bgt.reset_index(inplace=True)
-
-    df_pred.drop(labels=code_clmn, axis=1, inplace=True)
-    # df_pred.reset_index(inplace=True)
+    new_df_bgt[pred_code_clmn] = new_df_bgt.index.get_level_values(code_clmn)
 
     code_list = df_pred.index
-    for kk in range(0, len(code_list)):
-        new_df_bgt = include_single_predecessor(new_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn,
-                                                code_list[kk])
-
-    new_df_bgt.set_index(keys=[code_clmn, month_clmn], drop=False, inplace=True)
-    # df_pred.reset_index(keys=code_clmn, drop=False, inplace=True)
+    print(code_list)
+    for item in code_list:
+        new_df_bgt = include_single_predecessor(new_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn, item)
 
     return new_df_bgt
 
 
 def include_single_predecessor(old_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn, new_code):
     new_df_bgt = old_df_bgt
-
-    bgt_pred = df_pred.at[new_code, pred_code_clmn]
+    print(df_pred)
+    bgt_pred = df_pred.loc[new_code, pred_code_clmn]
+    print(new_code, bgt_pred)
     bgt_pred_array = [12 * [bgt_pred],
                       ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']]
+
     bgt_pred_tuple = list(zip(*bgt_pred_array))
 
-    add_row = old_df_bgt.filter(bgt_pred_tuple, axis=0)
+    print('tuple:')
+    print(bgt_pred_tuple)
+    print('bgt file::')
+    print(new_df_bgt.index)
+    add_row = new_df_bgt.filter(bgt_pred_tuple, axis=0)
+    add_row.reset_index(inplace=True)
     add_row[code_clmn] = new_code
-    add_row.set_index(keys=[code_clmn, month_clmn], drop=False, inplace=True)
+    add_row.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+    print('add row:::')
+    print(add_row)
+
     new_df_bgt = new_df_bgt.append(add_row)
 
     return new_df_bgt
@@ -295,7 +308,6 @@ def generate_price_curve_based_on_actuals(old_dataframe, start_month, end_month,
 
     ref_data = ref_data.merge(df_avg, how='left', on=code_clmn)
 
-    long_dataframe = long_dataframe.drop(columns=[code_clmn, month_clmn])
     long_dataframe.reset_index(inplace=True)
 
     new_dataframe = long_dataframe.merge(ref_data, how='left', on=code_clmn)
@@ -335,7 +347,6 @@ def generate_price_curve_based_on_inflation(old_dataframe, start_month, end_mont
     new_dataframe = melt_and_index(wide_dataframe, old_df_clmn_lt, month_clmn, price_clmn, code_clmn)
     new_dataframe.drop(columns=price_clmn, inplace=True)
 
-    new_dataframe.drop(columns=[code_clmn, month_clmn], inplace=True)
     new_dataframe.reset_index(inplace=True)
     new_dataframe[month_clmn] = new_dataframe[month_clmn].astype(int)
 
