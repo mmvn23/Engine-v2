@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import functions as fc
 
 # List of inputs (excel files):
@@ -14,12 +15,12 @@ import functions as fc
 #   5) Predecessor - OK
 #   6) UoM and FX equalization - OK
 #   7) UoM and FX conversions - OK
-#   8) Project mapping
+#   8) Project mapping -OK
 
 #############################                Input Variables                      ######################################
-report_month = 4
+report_month = 5
 Fiscal_Year = '2020'
-file_name_error_msg = './outputs/error msg {0}-{1}.txt'.format(Fiscal_Year, report_month)
+filename_error_msg = './outputs/error msg {0}-{1}.txt'.format(Fiscal_Year, report_month)
 
 ########################    Data cleaning    ########################
 ### Budget ###
@@ -45,33 +46,33 @@ bgt_volume_clmn = 'bgt_volume'
 pred_code_clmn = 'bgt_predecessor'
 
 df_wide_bgt_raw_clmn_expect_lt = ['Part Number', 'Description', 'Category', 'Plant', 'PAF price', 'FX', 'Unity',
-                                        '1 or 1,000? ', 'PL or BS?', 'vol 01', 'vol 02', 'vol 03', 'vol 04', 'vol 05',
-                                        'vol 06', 'vol 07', 'vol 08', 'vol 09', 'vol 10', 'vol 11', 'vol 12']
+                                  '1 or 1,000? ', 'PL or BS?', 'vol 01', 'vol 02', 'vol 03', 'vol 04', 'vol 05',
+                                  'vol 06', 'vol 07', 'vol 08', 'vol 09', 'vol 10', 'vol 11', 'vol 12']
 
 df_long_bgt_clmn_list = [description_clmn, category_clmn, location_clmn, savings_type_clmn, bgt_volume_clmn,
                          bgt_price_clmn, bgt_per_clmn, bgt_uom_clmn, bgt_currency_clmn, pred_code_clmn]
 
 bgt_clmn_conversion = {df_wide_bgt_raw_clmn_expect_lt[0]: code_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[1]: description_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[2]: category_report_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[3]: location_report_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[4]: bgt_price_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[5]: bgt_currency_report_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[6]: bgt_uom_report_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[7]: bgt_per_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[8]: savings_type_report_clmn,
-                         df_wide_bgt_raw_clmn_expect_lt[9]: '1',
-                         df_wide_bgt_raw_clmn_expect_lt[10]: '2',
-                         df_wide_bgt_raw_clmn_expect_lt[11]: '3',
-                         df_wide_bgt_raw_clmn_expect_lt[12]: '4',
-                         df_wide_bgt_raw_clmn_expect_lt[13]: '5',
-                         df_wide_bgt_raw_clmn_expect_lt[14]: '6',
-                         df_wide_bgt_raw_clmn_expect_lt[15]: '7',
-                         df_wide_bgt_raw_clmn_expect_lt[16]: '8',
-                         df_wide_bgt_raw_clmn_expect_lt[17]: '9',
-                         df_wide_bgt_raw_clmn_expect_lt[18]: '10',
-                         df_wide_bgt_raw_clmn_expect_lt[19]: '11',
-                         df_wide_bgt_raw_clmn_expect_lt[20]: '12'}
+                       df_wide_bgt_raw_clmn_expect_lt[1]: description_clmn,
+                       df_wide_bgt_raw_clmn_expect_lt[2]: category_report_clmn,
+                       df_wide_bgt_raw_clmn_expect_lt[3]: location_report_clmn,
+                       df_wide_bgt_raw_clmn_expect_lt[4]: bgt_price_clmn,
+                       df_wide_bgt_raw_clmn_expect_lt[5]: bgt_currency_report_clmn,
+                       df_wide_bgt_raw_clmn_expect_lt[6]: bgt_uom_report_clmn,
+                       df_wide_bgt_raw_clmn_expect_lt[7]: bgt_per_clmn,
+                       df_wide_bgt_raw_clmn_expect_lt[8]: savings_type_report_clmn,
+                       df_wide_bgt_raw_clmn_expect_lt[9]: '1',
+                       df_wide_bgt_raw_clmn_expect_lt[10]: '2',
+                       df_wide_bgt_raw_clmn_expect_lt[11]: '3',
+                       df_wide_bgt_raw_clmn_expect_lt[12]: '4',
+                       df_wide_bgt_raw_clmn_expect_lt[13]: '5',
+                       df_wide_bgt_raw_clmn_expect_lt[14]: '6',
+                       df_wide_bgt_raw_clmn_expect_lt[15]: '7',
+                       df_wide_bgt_raw_clmn_expect_lt[16]: '8',
+                       df_wide_bgt_raw_clmn_expect_lt[17]: '9',
+                       df_wide_bgt_raw_clmn_expect_lt[18]: '10',
+                       df_wide_bgt_raw_clmn_expect_lt[19]: '11',
+                       df_wide_bgt_raw_clmn_expect_lt[20]: '12'}
 
 bgt_error_str = "\nBgt file:\n"
 
@@ -91,19 +92,20 @@ act_volume_per_clmn = 'act_volume_per'
 act_volume_clmn = 'act_volume'
 act_code_and_month_clmn = 'act_code_and_month'
 
+df_wide_act_raw_clmn_expect_lt_base = ['Part Number', 'Description', 'Category', 'Plant', 'FX', 'Unity', '1 or 1,000? ']
 df_wide_act_raw_clmn_expect_lt = ['Part Number', 'Description', 'Category', 'Plant', 'FX', 'Unity', '1 or 1,000? ']
 # input has only 1 UoM, therefore we will have to adjust
 
 volume_act_base_string = "v"
 df_wide_act_raw_clmn_expect_lt = fc.generate_wide_clmn_expected_list(df_wide_act_raw_clmn_expect_lt,
-                                                                                     1, report_month, volume_act_base_string)
+                                                                     1, report_month, volume_act_base_string)
 price_act_base_string = "P"
-df_wide_act_raw_clmn_expect_lt = fc.generate_wide_clmn_expected_list(df_wide_act_raw_clmn_expect_lt,
-                                                                                     1, report_month, price_act_base_string)
+df_wide_act_raw_clmn_expect_lt = fc.generate_wide_clmn_expected_list(df_wide_act_raw_clmn_expect_lt, 1, report_month,
+                                                                     price_act_base_string)
 
-df_long_act_clmn_list = [description_clmn, category_clmn, location_clmn, act_volume_clmn,
-                           act_volume_per_clmn, act_volume_uom_clmn,  act_price_clmn, act_price_per_clmn,
-                           act_price_uom_clmn, act_currency_clmn]
+df_long_act_clmn_list = [description_clmn, category_clmn, location_clmn, act_volume_clmn, act_volume_per_clmn,
+                         act_volume_uom_clmn,  act_price_clmn, act_price_per_clmn, act_price_uom_clmn,
+                         act_currency_clmn]
 
 act_volume_clmns_conversion_base = {df_wide_act_raw_clmn_expect_lt[0]: code_clmn,
                                     df_wide_act_raw_clmn_expect_lt[1]: description_clmn,
@@ -116,8 +118,8 @@ act_volume_clmns_conversion_base = {df_wide_act_raw_clmn_expect_lt[0]: code_clmn
 act_volume_clmn_conversion = fc.generate_wide_clmn_conversion(act_volume_clmns_conversion_base, 1, report_month,
                                                               volume_act_base_string)
 act_price_clmns_conversion_base = {df_wide_act_raw_clmn_expect_lt[0]: code_clmn,
-                                     df_wide_act_raw_clmn_expect_lt[5]: act_price_uom_report_clmn,
-                                     df_wide_act_raw_clmn_expect_lt[6]: act_price_per_clmn}
+                                   df_wide_act_raw_clmn_expect_lt[5]: act_price_uom_report_clmn,
+                                   df_wide_act_raw_clmn_expect_lt[6]: act_price_per_clmn}
 
 act_price_clmn_conversion = fc.generate_wide_clmn_conversion(act_price_clmns_conversion_base, 1, report_month,
                                                              price_act_base_string)
@@ -165,9 +167,9 @@ df_wide_frc_vol_raw_clmn_expect_lt = fc.generate_wide_clmn_expected_list(df_wide
 df_wide_frc_as_bgt_raw_clmn_expect_lt = ['Part Number',	'Plant', 'Description']
 df_wide_frc_as_act_raw_clmn_expect_lt = ['Part Number',	'Plant', 'Description']
 df_wide_frc_as_cnst_raw_clmn_expect_lt = ['Part Number',	'Plant', 'Description', 'Price', 'Unity', '1 or 1,000? ',
-                                                'FX']
+                                          'FX']
 df_wide_frc_as_inf_raw_clmn_expect_lt = ['Part Number',	'Plant', 'Description', 'Unity', '1 or 1,000? ', 'FX',
-                                               'Base price', 'Inflation', 'Inflation month']
+                                         'Base price', 'Inflation', 'Inflation month']
 df_wide_frc_as_crv_raw_clmn_expect_lt_base = ['Part Number', 'Plant', 'Description', 'Unity', '1 or 1,000? ', 'FX']
 price_frc_base_string = "P"
 df_wide_frc_as_crv_raw_clmn_expect_lt = fc.generate_wide_clmn_expected_list(df_wide_frc_as_crv_raw_clmn_expect_lt_base,
@@ -228,7 +230,8 @@ frc_error_str = "\nForecast file:\n"
 ### baseline ###
 filename_bsl = './inputs/Baseline.xlsx'
 filename_bsl_csv = './outputs/baseline {0}.csv'.format(Fiscal_Year)
-df_bsl_raw_clmn_expect_lt = ['Part Number', 'Plant', 'Description', 'Baseline', 'Unity', '1 or 1,000? ', 'FX', 'Last FY']
+df_bsl_raw_clmn_expect_lt = ['Part Number', 'Plant', 'Description', 'Baseline', 'Unity', '1 or 1,000? ', 'FX',
+                             'Last FY']
 bsl_error_str = "\nBaseline file:\n"
 bsl_price_clmn = 'bsl_price'
 bsl_price_ly = 'bsl_average_price_last_year'
@@ -237,7 +240,7 @@ bsl_price_uom_clmn = 'bsl_price_uom'
 bsl_price_per_clmn = 'bsl_price_per'
 bsl_currency_report_clmn = 'report_bsl_currency'
 bsl_currency_clmn = 'bsl_currency'
-
+bsl_pred_code_clmn = 'bsl_predecessor'
 
 bsl_clmns_conversion = {df_bsl_raw_clmn_expect_lt[0]: code_clmn,
                         df_bsl_raw_clmn_expect_lt[1]: location_report_clmn,
@@ -278,11 +281,12 @@ pjmp_type_clmn = 'project_type'
 pjmp_sav_assignment_type = 'savings_assignment_type'
 pjmp_pcent_str = 'percent'
 pjmp_cnst_str = 'constant'
+pjmp_start_month_clmn = 'project_start_month'
 
 df_pjmp_pcent_raw_clmn_expect_lt = ['Part Number', 'Plant',	'Description',	'project code',	'project name',	'%']
 df_pjmp_cnst_raw_clmn_expect_lt = ['Part Number', 'Plant',	'Description',	'Pj code',	'Pj Name',	'Value',	'Unity',
                                    '1 or 1,000? ',	'FX']
-df_pjmp_pj_list_raw_clmn_expect_lt = ['Code',	'Name',	'Type']
+df_pjmp_pj_list_raw_clmn_expect_lt = ['Code',	'Name',	'Type', 'kick-off mth']
 
 df_pjmp_clmn_list = [code_clmn, description_clmn, location_clmn, pjmp_code_clmn, pjmp_description_clmn,
                      pjmp_sav_assignment_type, pjmp_pcent_clmn, pjmp_cnst_clmn, pjmp_uom_clmn, pjmp_per_clmn,
@@ -307,7 +311,8 @@ pjmp_cnst_clmns_conversion_base = {df_pjmp_cnst_raw_clmn_expect_lt[0]: code_clmn
 
 pjmp_pj_list_clmns_conversion_base = {df_pjmp_pj_list_raw_clmn_expect_lt[0]: pjmp_code_clmn,
                                       df_pjmp_pj_list_raw_clmn_expect_lt[1]: pjmp_description_clmn,
-                                      df_pjmp_pj_list_raw_clmn_expect_lt[2]: pjmp_type_report_clmn}
+                                      df_pjmp_pj_list_raw_clmn_expect_lt[2]: pjmp_type_report_clmn,
+                                      df_pjmp_pj_list_raw_clmn_expect_lt[3]: pjmp_start_month_clmn}
 
 pjmp_pcent_error_str = "\n Pj Mapping file (percent):\n"
 pjmp_cnst_error_str = "\n Pj Mapping file (constant):\n"
@@ -360,6 +365,7 @@ filename_conv = './inputs/Conversion table.xlsx'
 filename_conv_csv = './outputs/conversion_table.csv'
 filename_ref_uom_csv = './outputs/reference_uom_currency.csv'
 
+reference_currency = 'USD'
 conv_old_uom_clmn = "Old UoM"
 conv_new_uom_clmn = "New UoM"
 conv_multiplier_clmn = "Multiplier"
@@ -375,6 +381,89 @@ ref_uom_clmn = 'Reference UoM'
 ref_currency_clmn = 'Reference Currency'
 
 conv_error_str = "\nConv file:\n"
+
+### uom and currency reference ###
+uom_ref_per_price_clmn = 'Ref_per_price'
+uom_ref_uom_price_clmn = 'Ref_uom_price'
+uom_ref_currency_clmn = 'Ref_currency'
+uom_ref_per_volume_clmn = 'Ref_per_volume'
+uom_ref_uom_volume_clmn = 'Ref_uom_volume'
+
+filename_uom_ref_csv = './outputs/uom reference.csv'
+
+########################    Calculation Engine    ########################
+cy_volume_clmn = 'current_year_volume'
+cy_volume_per_clmn = 'current_year_volume_per'
+cy_volume_uom_clmn = 'current_year_volume_uom'
+cy_price_clmn = 'current_year_price'
+cy_price_per_clmn = 'current_year_price_per'
+cy_price_uom_clmn = 'current_year_price_uom'
+cy_currency_clmn = 'current_year_currency'
+cy_type_report_clmn = 'type_report'
+cy_act_report = 'Actuals'
+cy_frc_report = 'Forecast'
+
+cy_price_at_ref_clmn = 'current_price_at_ref'
+cy_volume_at_ref_clmn = 'current_volume_at_ref'
+
+cy_to_ref_mult_price_uom_clmn = 'cy_to_ref_multiplier_uom_price'
+cy_to_ref_mult_price_per_clmn = 'cy_to_ref_multiplier_per_price'
+cy_to_ref_mult_currency_clmn = 'cy_to_ref_multiplier_currency'
+cy_to_ref_mult_volume_uom_clmn = 'cy_to_ref_multiplier_uom_volume'
+cy_to_ref_mult_volume_per_clmn = 'cy_to_ref_multiplier_per_volume'
+
+bgt_price_at_ref_clmn = 'budget_price_at_ref'
+bgt_volume_at_ref_clmn = 'budget_volume_at_ref'
+
+bgt_to_ref_mult_price_uom_clmn = 'bgt_to_ref_multiplier_uom_price'
+bgt_to_ref_mult_price_per_clmn = 'bgt_to_ref_multiplier_per_price'
+bgt_to_ref_mult_currency_clmn = 'bgt_to_ref_multiplier_currency'
+bgt_to_ref_mult_volume_uom_clmn = 'bgt_to_ref_multiplier_uom_volume'
+bgt_to_ref_mult_volume_per_clmn = 'bgt_to_ref_multiplier_per_volume'
+
+bsl_price_at_ref_clmn = 'baseline_price_at_ref'
+
+bsl_to_ref_mult_price_uom_clmn = 'bsl_to_ref_multiplier_uom_price'
+bsl_to_ref_mult_price_per_clmn = 'bsl_to_ref_multiplier_per_price'
+bsl_to_ref_mult_currency_clmn = 'bsl_to_ref_multiplier_currency'
+
+ly_price_at_ref_clmn = 'ly_avg_price_at_ref'
+
+ly_spend_avg_pr_bgt_vl_clmn = 'ly_spd_at_ly_avg_price_bgt_volume'
+bsl_spend_bsl_pr_bgt_vl_clmn = 'bsl_spd_at_bsl_price_bgt_volume'
+bsl_inflation_clmn = 'baseline_inflation'
+bgt_spend_bgt_pr_bgt_vl_clmn = 'bgt_spd_at_bgt_price_bgt_volume'
+bgt_savings_clmn = 'budget_savings'
+bgt_spend_bgt_pr_cy_vl_clmn = 'bgt_spd_at_bgt_price_cy_volume'
+volume_adjustment_clmn = 'bgt_spend_adjustment_due_to_volume'
+cy_spend_cy_pr_cy_vl_clmn = 'cy_spd_at_cy_price_cy_volume'
+cy_bgt_savings_clmn = 'savings_vs_budget'
+bsl_spend_bsl_pr_cy_vl_clmn = 'bsl_spd_at_bsl_price_cy_volume'
+cy_bsl_savings_clmn = 'savings_vs_baseline'
+volume_influence_vs_bsl_clmn = 'volume_influence_vs_baseline'
+volume_influence_vs_bgt_clmn = 'volume_influence_vs_budget'
+
+engine_error_str = 'ENGINE ERROR: '
+
+filename_cy_csv = './outputs/Savings Report – FY{0} P{1} per PN.csv'.format(Fiscal_Year, report_month)
+filename_pj_csv = './outputs/Projects Report – FY{0} P{1} per PN.csv'.format(Fiscal_Year, report_month)
+filename_error_msg_engine = './outputs/error msg Sv Rpt – FY{0} P{1} per PN.txt'.format(Fiscal_Year, report_month)
+
+pjmp_cnst_at_ref_clmn = 'constant_at_ref'
+pjmp_to_ref_mult_uom_clmn = 'pjmp_to_ref_multiplier_uom'
+pjmp_to_ref_mult_per_clmn = 'pjmp_to_ref_multiplier_per'
+pjmp_to_ref_mult_currency_clmn = 'pjmp_to_ref_multiplier_currency'
+
+proj_str_description = 'project_name_'
+proj_str_value = 'project_value_vs_bsl_'
+proj_str_code = 'project_code_'
+
+proj_str_description_gen = 'project_description_0'
+proj_str_value_gen = 'project_value_vs_bsl_0'
+proj_str_code_gen = 'project_code_0'
+
+gen_pj_code_str = 'GP-'
+gen_pj_description_str = '-Negotiations'
 
 #############################                1) DATA CLEANING                     ######################################
 ########################    Load excel files    ########################
@@ -484,7 +573,8 @@ df_pjmp_pj_list = df_pjmp_pj_list.filter(items=df_pjmp_pj_list_raw_clmn_expect_l
                                                error_msg)
 ### actuals ###
 [df_wide_act, error_msg] = fc.clear_extra_rows(df_wide_act, df_wide_act_raw_clmn_expect_lt[0], act_error_str,
-                                               error_msg)
+                                               error_msg, df_wide_act_raw_clmn_expect_lt_base)
+
 ### forecast ###
 # forecast files will be fully generated from scratch, therefore, there is not need to clean extra rows.
 
@@ -515,7 +605,9 @@ df_pjmp_pj_list = df_pjmp_pj_list.filter(items=df_pjmp_pj_list_raw_clmn_expect_l
                                                              project_type_eq_error_str, error_msg)
 
 ### conversion ###
-[df_conv, error_msg] = fc.clear_extra_rows(df_conv, df_conv_raw_clmn_expect_lt[0], conv_error_str, error_msg)
+
+[df_conv, error_msg] = fc.clear_extra_rows(df_conv, df_conv_raw_clmn_expect_lt[0], conv_error_str, error_msg,
+                                           df_conv_raw_clmn_expect_lt)
 
 ### project mapping ###
 [df_pjmp_pcent, error_msg] = fc.clear_extra_rows(df_pjmp_pcent, df_pjmp_pcent_raw_clmn_expect_lt[0],
@@ -596,7 +688,6 @@ df_wide_bgt = fc.remove_key_duplicates(df_wide_bgt, code_clmn)
 df_wide_volume_act = fc.remove_key_duplicates(df_wide_volume_act, code_clmn)
 df_wide_price_act = fc.remove_key_duplicates(df_wide_price_act, code_clmn)
 
-
 ### forecast ###
 df_wide_frc_vol = fc.remove_key_duplicates(df_wide_frc_vol, code_clmn)
 df_wide_frc_as_bgt = fc.remove_key_duplicates(df_wide_frc_as_bgt, code_clmn)
@@ -620,7 +711,6 @@ df_savings_type_equalizer = fc.remove_key_duplicates(df_savings_type_equalizer, 
 df_project_type_equalizer = fc.remove_key_duplicates(df_project_type_equalizer, pjmp_type_report_clmn)
 
 ### conversion ###
-df_conv = fc.remove_key_duplicates(df_conv, conv_old_uom_clmn)
 
 ### project mapping ###
 df_pjmp_pj_list = fc.remove_key_duplicates(df_pjmp_pj_list, pjmp_code_clmn)
@@ -646,31 +736,50 @@ df_pjmp_pj_list = fc.remove_key_duplicates(df_pjmp_pj_list, pjmp_code_clmn)
                                               bgt_error_str, error_msg)
 
 ### actuals ###
+
+df_wide_act_volume_clmn_expect_lt_base = [code_clmn, description_clmn, category_clmn, location_report_clmn,
+                                          act_currency_report_clmn, act_volume_uom_report_clmn, act_volume_per_clmn]
 [df_wide_volume_act, error_msg] = fc.merge_and_drop(df_wide_volume_act, df_category_equalizer, category_report_clmn,
                                                     category_report_clmn, category_clmn, code_clmn,
-                                                    act_error_str, error_msg)
+                                                    act_error_str, error_msg, df_wide_act_volume_clmn_expect_lt_base)
+
+df_wide_act_volume_clmn_expect_lt_base = [code_clmn, description_clmn, category_clmn, location_clmn,
+                                          act_currency_report_clmn, act_volume_uom_report_clmn, act_volume_per_clmn]
 [df_wide_volume_act, error_msg] = fc.merge_and_drop(df_wide_volume_act, df_location_equalizer, location_report_clmn,
                                                     location_report_clmn, location_clmn, code_clmn,
-                                                    act_error_str, error_msg)
+                                                    act_error_str, error_msg, df_wide_act_volume_clmn_expect_lt_base)
+
+df_wide_act_volume_clmn_expect_lt_base = [code_clmn, description_clmn, category_clmn, location_clmn,
+                                          act_currency_clmn, act_volume_uom_report_clmn, act_volume_per_clmn]
 [df_wide_volume_act, error_msg] = fc.merge_and_drop(df_wide_volume_act, df_currency_equalizer,
                                                     act_currency_report_clmn, bgt_currency_report_clmn,
-                                                    act_currency_clmn, code_clmn, act_error_str, error_msg)
+                                                    act_currency_clmn, code_clmn, act_error_str, error_msg,
+                                                    df_wide_act_volume_clmn_expect_lt_base)
+
+df_wide_act_volume_clmn_expect_lt_base = [code_clmn, description_clmn, category_clmn, location_clmn,
+                                          act_currency_clmn, act_volume_uom_clmn, act_volume_per_clmn]
 [df_wide_volume_act, error_msg] = fc.merge_and_drop(df_wide_volume_act, df_uom_equalizer, act_volume_uom_report_clmn,
                                                     bgt_uom_report_clmn, act_volume_uom_clmn, code_clmn,
-                                                    act_error_str, error_msg)
+                                                    act_error_str, error_msg, df_wide_act_volume_clmn_expect_lt_base)
+
+df_wide_act_price_clmn_expect_lt_base = [code_clmn, act_price_per_clmn]
 [df_wide_price_act, error_msg] = fc.merge_and_drop(df_wide_price_act, df_uom_equalizer, act_price_uom_report_clmn,
                                                    bgt_uom_report_clmn, act_price_uom_clmn, code_clmn,
-                                                   act_error_str, error_msg)
+                                                   act_error_str, error_msg, df_wide_act_price_clmn_expect_lt_base)
 
 ### forecast ###
 # volume
+df_wide_frc_volume_clmn_expect_lt_base = [code_clmn, description_clmn, location_clmn, frc_vol_uom_report_clmn,
+                                          frc_vol_per_clmn]
 [df_wide_frc_vol, error_msg] = fc.merge_and_drop(df_wide_frc_vol, df_location_equalizer, location_report_clmn,
                                                  location_report_clmn, location_clmn, code_clmn, frc_error_str,
-                                                 error_msg)
+                                                 error_msg, df_wide_frc_volume_clmn_expect_lt_base)
 
+df_wide_frc_volume_clmn_expect_lt_base = [code_clmn, description_clmn, location_clmn, frc_vol_uom_clmn,
+                                          frc_vol_per_clmn]
 [df_wide_frc_vol, error_msg] = fc.merge_and_drop(df_wide_frc_vol, df_uom_equalizer, frc_vol_uom_report_clmn,
                                                  bgt_uom_report_clmn, frc_vol_uom_clmn, code_clmn, frc_error_str,
-                                                 error_msg)
+                                                 error_msg, df_wide_frc_volume_clmn_expect_lt_base)
 
 # as budget
 [df_wide_frc_as_bgt, error_msg] = fc.merge_and_drop(df_wide_frc_as_bgt, df_location_equalizer, location_report_clmn,
@@ -753,6 +862,7 @@ df_long_bgt = fc.melt_and_index(df_wide_bgt, bgt_id_vars, month_clmn, bgt_volume
 ### actuals ###
 act_volume_id_vars = [code_clmn, description_clmn, category_clmn, location_clmn, act_currency_clmn,
                       act_volume_uom_clmn, act_volume_per_clmn]
+
 df_long_volume_act = fc.melt_and_index(df_wide_volume_act, act_volume_id_vars, month_clmn, act_volume_clmn,
                                        code_clmn)
 
@@ -767,8 +877,11 @@ df_long_act = df_long_volume_act.merge(right=df_long_price_act, left_index=True,
 frc_volume_id_vars = [code_clmn, description_clmn, location_clmn, frc_vol_uom_clmn, frc_vol_per_clmn]
 df_long_frc_vol = fc.melt_and_index(df_wide_frc_vol, frc_volume_id_vars, month_clmn, frc_vol_clmn, code_clmn)
 
+frc_vol_converting_clmns = [frc_vol_clmn]
+df_long_frc_vol = fc.convert_nan_to_zero(df_long_frc_vol, frc_vol_converting_clmns)
+
 ######################## Convert data types ########################
-num_types = 'float'
+
 ### budget ###
 bgt_clmn_list = [bgt_volume_clmn, bgt_per_clmn]
 bgt_conversion_error_string = bgt_error_str + " volume and per"
@@ -776,10 +889,12 @@ bgt_conversion_error_string = bgt_error_str + " volume and per"
 [df_long_bgt, error_msg] = fc.clean_types(df_long_bgt, bgt_clmn_list, bgt_conversion_error_string, error_msg)
 
 ### actuals ###
-act_clmn_list = [act_volume_per_clmn, act_price_per_clmn, act_volume_clmn, act_price_clmn]
+act_clmn_list = [act_volume_per_clmn, act_price_per_clmn]
 act_conversion_error_string = act_error_str + " volume, price and per"
-
 [df_long_act, error_msg] = fc.clean_types(df_long_act, act_clmn_list, act_conversion_error_string, error_msg)
+
+act_converting_clmns = [act_volume_clmn, act_price_clmn]
+df_long_act = fc.convert_nan_to_zero(df_long_act, act_converting_clmns)
 
 ## baseline ##
 bsl_clmn_list = [bsl_price_clmn, bsl_price_per_clmn]
@@ -789,7 +904,9 @@ bsl_conversion_error_string = bsl_error_str + " conversion"
 ### conversion ###
 conv_clmn_list = [conv_multiplier_clmn]
 conv_error_string = conv_error_str + " conversion"
+
 [df_conv, error_msg] = fc.clean_types(df_conv, conv_clmn_list, conv_error_string, error_msg)
+
 
 ### project mapping ###
 pjmp_pcent_clmn_list = [pjmp_pcent_clmn]
@@ -805,14 +922,9 @@ pjmp_pj_list_error_string = pjmp_pj_list_error_str + " conversion"
 # pj_list dataframe does not have any numerical columns.
 
 ######################## Prepare conversion files ########################
-### Expand conversion table to have a PN-from-to structure
-# Generate reference file
+### Generate reference file
 df_ref_uom = fc.generate_uom_ref_file(df_wide_bgt, code_clmn, bgt_uom_clmn, bgt_currency_clmn, ref_uom_clmn,
                                       ref_currency_clmn)
-# Load and structure conversion file
-conv_to_all_str = 'All'
-df_conv = fc.prepare_long_uom_ref_file(df_conv, df_wide_bgt[code_clmn], code_clmn, conv_old_uom_clmn, conv_new_uom_clmn,
-                                       conv_to_all_str)
 
 ######################## Indexing ########################
 ### baseline ###
@@ -830,8 +942,8 @@ df_savings_type_equalizer.set_index(keys=[savings_type_report_clmn], drop=True, 
 
 
 ######################## Include predecessor's data into budget ########################
-df_long_bgt = fc.include_predecessors(df_long_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn)
-print(df_long_bgt)
+df_long_bgt = fc.include_predecessors(df_long_bgt, df_pred, pred_code_clmn, pred_code_clmn, code_clmn, month_clmn)
+df_bsl = fc.include_predecessors(df_bsl, df_pred, pred_code_clmn, bsl_pred_code_clmn, code_clmn)
 
 ######################## Calculate monthly price forecast ########################
 frc_id_vars = [code_clmn, description_clmn, location_clmn, frc_currency_clmn, frc_price_uom_clmn, frc_price_per_clmn]
@@ -857,6 +969,7 @@ act_matching_tuple = {act_currency_clmn: frc_currency_clmn,
                       act_price_uom_clmn: frc_price_uom_clmn,
                       act_price_per_clmn: frc_price_per_clmn,
                       act_price_clmn: frc_price_clmn}
+
 
 df_long_frc_as_act = fc.generate_price_curve_based_on_actuals(df_wide_frc_as_act, report_month + 1, 12,
                                                               month_clmn, frc_price_clmn, code_clmn,
@@ -884,6 +997,7 @@ df_long_frc_as_crv = fc.generate_price_curve_based_on_curve(df_wide_frc_as_crv, 
                                                             frc_strategy_as_crv, frc_desired_clmn_list)
 
 # unify all of them
+
 df_long_frc = df_long_frc_as_bgt
 df_long_frc = df_long_frc.append(df_long_frc_as_act)
 df_long_frc = df_long_frc.append(df_long_frc_as_cnst)
@@ -891,28 +1005,21 @@ df_long_frc = df_long_frc.append(df_long_frc_as_inf)
 df_long_frc = df_long_frc.append(df_long_frc_as_crv)
 
 df_long_frc_vol.drop(columns=[description_clmn, location_clmn], inplace=True)
-
-df_long_frc = fc.fix_index(df_long_frc, code_clmn, month_clmn)
-df_long_frc_vol = fc.fix_index(df_long_frc_vol, code_clmn, month_clmn)
-
-df_long_frc = df_long_frc.merge(df_long_frc_vol, how='inner', left_index=True, right_index=True)
-
-df_long_bgt = fc.fix_index(df_long_bgt, code_clmn, month_clmn)
-
-df_long_act = fc.fix_index(df_long_act, code_clmn, month_clmn)
+df_long_frc = df_long_frc.merge(df_long_frc_vol, how='outer', left_index=True, right_index=True)
 
 df_long_frc = fc.add_category_to_frc(df_long_frc, df_long_bgt, code_clmn, month_clmn, category_clmn)
 
 ######################## Calculate project list ########################
 # add column with savings assignement type
+
 df_pjmp_pcent[pjmp_sav_assignment_type] = pjmp_pcent_str
-df_pjmp_pcent[pjmp_per_clmn] = 'N/A'
-df_pjmp_pcent[pjmp_cnst_clmn] = 'N/A'
+df_pjmp_pcent[pjmp_per_clmn] = 1
+df_pjmp_pcent[pjmp_cnst_clmn] = 0
 df_pjmp_pcent[pjmp_uom_clmn] = 'N/A'
 df_pjmp_pcent[pjmp_currency_clmn] = 'N/A'
 
 df_pjmp_cnst[pjmp_sav_assignment_type] = pjmp_cnst_str
-df_pjmp_cnst[pjmp_pcent_clmn] = 'N/A'
+df_pjmp_cnst[pjmp_pcent_clmn] = 0
 
 df_pjmp_pcent = df_pjmp_pcent[df_pjmp_clmn_list]
 df_pjmp_cnst = df_pjmp_cnst[df_pjmp_clmn_list]
@@ -926,14 +1033,52 @@ df_pjmp_pj_list.drop(columns=pjmp_description_clmn, inplace=True)
 df_pjmp = df_pjmp.merge(df_pjmp_pj_list, how='left', on=pjmp_code_clmn)
 df_pjmp.set_index(keys=code_clmn, drop=True, inplace=True)
 
+######################## Add forecast strategy ########################
+### budget ###
+df_long_act[frc_strategy_column] = 'NA'
+df_long_act_clmn_list.append(frc_strategy_column)
+
+################## Load and structure conversion file ##################
+conv_to_all_str = 'All'
+
+code_clmn_list = df_long_bgt.reset_index()
+code_clmn_list = code_clmn_list[code_clmn]
+code_clmn_list = np.unique(code_clmn_list).tolist()
+
+df_conv = fc.prepare_long_uom_ref_file(df_conv, code_clmn_list, code_clmn, conv_old_uom_clmn, conv_new_uom_clmn,
+                                       conv_to_all_str)
+
 ######################## Reorder columns ########################
 ### budget ###
-df_long_bgt.set_index(keys=code_clmn, drop=True, inplace=True)
 df_long_bgt = df_long_bgt[df_long_bgt_clmn_list]
 ### actuals ###
 df_long_act = df_long_act[df_long_act_clmn_list]
 ### forecast ###
 df_long_frc = df_long_frc[df_long_frc_clmn_list]
+
+### uom and currency reference file ###
+df_uom_ref = df_long_bgt.reset_index(inplace=False)
+
+df_uom_ref_clmn_expect_lt = [code_clmn, bgt_uom_clmn, bgt_currency_clmn, bgt_per_clmn]
+df_uom_ref = df_uom_ref.filter(items=df_uom_ref_clmn_expect_lt, axis=1)
+
+uom_ref_clmn_conversion = {bgt_per_clmn: uom_ref_per_price_clmn,
+                           bgt_uom_clmn: uom_ref_uom_price_clmn,
+                           bgt_currency_clmn: uom_ref_currency_clmn}
+df_uom_ref.rename(columns=uom_ref_clmn_conversion, inplace=True)
+
+df_uom_ref[uom_ref_per_volume_clmn] = df_uom_ref[uom_ref_per_price_clmn]
+df_uom_ref[uom_ref_uom_volume_clmn] = df_uom_ref[uom_ref_uom_price_clmn]
+
+df_uom_ref = fc.remove_key_duplicates(df_uom_ref, code_clmn)
+
+df_uom_ref.set_index(keys=[code_clmn], drop=True, inplace=True)
+
+df_uom_ref[uom_ref_currency_clmn] = reference_currency
+
+df_uom_ref_clmn_list = [uom_ref_uom_volume_clmn, uom_ref_per_volume_clmn, uom_ref_uom_price_clmn,
+                        uom_ref_per_price_clmn, uom_ref_currency_clmn]
+df_uom_ref = df_uom_ref[df_uom_ref_clmn_list]
 
 ######################## Save data-frame on CSV ########################
 ### budget ###
@@ -964,13 +1109,289 @@ df_conv.to_csv(filename_conv_csv)
 ### project mapping ###
 df_pjmp.to_csv(filename_pjmp_csv)
 
+### uom and currency reference file ###
+df_uom_ref.to_csv(filename_uom_ref_csv)
+
 ## error msg ##
-error_file = open(file_name_error_msg, "w")
+error_file = open(filename_error_msg, "w")
 error_file.write(error_msg)
 error_file.close()
 
-print(error_msg)
-#############################                   2) CALCULATION ENGINE                      #############################
+# print(error_msg)
+#############################                   2) CALCULATION ENGINE (var. 380)           #############################
+# temp location for inputs
+
+# df_long_act
+# Index: ['code', 'month']
+# Columns: ['description', 'category', 'location', 'act_volume', 'act_volume_per',
+#        'act_volume_uom', 'act_price', 'act_price_per', 'act_price_uom',
+#        'act_currency', 'frc_strategy']
+
+act_to_cy_clmn_conversion = {act_volume_clmn: cy_volume_clmn,
+                             act_volume_per_clmn: cy_volume_per_clmn,
+                             act_volume_uom_clmn: cy_volume_uom_clmn,
+                             act_price_clmn: cy_price_clmn,
+                             act_price_per_clmn: cy_price_per_clmn,
+                             act_price_uom_clmn: cy_price_uom_clmn,
+                             act_currency_clmn: cy_currency_clmn}
+
+# df_long_frc
+# Index: ['code', 'month']
+# Columns: ['description', 'category', 'location', 'frc_volume',
+#        'frc_volume_per_uom', 'frc_volume_uom', 'frc_price', 'frc_price_per',
+#        'frc_price_uom', 'frc_currency', 'frc_strategy']
+frc_to_cy_clmn_conversion = {frc_vol_clmn: cy_volume_clmn,
+                             frc_vol_per_clmn: cy_volume_per_clmn,
+                             frc_vol_uom_clmn: cy_volume_uom_clmn,
+                             frc_price_clmn: cy_price_clmn,
+                             frc_price_per_clmn: cy_price_per_clmn,
+                             frc_price_uom_clmn: cy_price_uom_clmn,
+                             frc_currency_clmn: cy_currency_clmn}
+
+# df_long_bgt
+# Index: ['code', 'month']
+# Columns: ['description', 'category', 'location', 'savings_type', 'bgt_volume',
+#        'bgt_price', 'bgt_per', 'bgt_uom', 'bgt_currency', 'bgt_predecessor']
+bgt_to_cy_to_drop = [description_clmn, category_clmn, location_clmn]
+
+# df_long_bsl
+# Index: ['code']
+# Columns: ['description', 'bsl_price', 'bsl_price_per',
+#        'bsl_average_price_last_year', 'location', 'bsl_currency',
+#        'bsl_price_uom']
+bsl_to_cy_to_drop = [description_clmn, location_clmn]
+
+# df_uom_ref
+# Index: ['code']
+# Columns:['Ref_uom_volume', 'Ref_per_volume', 'Ref_uom_price', 'Ref_per_price',
+#        'Ref_currency']
+
+# df_conv
+# Index: ['code', 'Old UoM', 'New UoM']
+# Columns: ['Multiplier']
+
+######################### Calculating Savings per PN file #########################
+# 1) merge actuals and forecast information
+# 2) add budget information
+# 3) add baseline information
+# 4) convert UOMs and currency
+# 5) calculate:
+#       LY avg spend ly_spd => avg_price * bgt_vol
+#       baseline inflation (USD) bsl_inf => bsl_spd - ly_spd
+#       baseline spend bsl_spd => bsl_price * bgt_vol
+#       budget savings bsl_sav => bgt_spd - bsl_spd
+#       budget spend bgt_spd => bgt_price * bgt_vol
+#       impact due to delta volume vol_imp => cy_bgt_spd - bgt_spd
+#       budget spend at current year volume cy_bgt_spd => bgt_price * cy_vol
+#       current year savings cy_sav => cy_spd - cy_bgt_spd
+#       current year spend cy_spd => cy_price * cy_vol
+#       total savings total_sav => bsl_sav + vol_imp + cy_sav
+
+### Change columns names ###
+
+df_long_act.rename(columns=act_to_cy_clmn_conversion, inplace=True)
+df_long_act[cy_type_report_clmn] = cy_act_report
+
+df_long_frc.rename(columns=frc_to_cy_clmn_conversion, inplace=True)
+df_long_frc[cy_type_report_clmn] = cy_frc_report
+
+### Merge actuals and forecast information ###
+df_cy = df_long_act
+df_cy = df_cy.append(df_long_frc)
+
+### Add budget information ###
+df_long_bgt = df_long_bgt.drop(bgt_to_cy_to_drop, axis=1, inplace=False)
+df_cy = df_cy.merge(df_long_bgt, how='left', left_index=True, right_index=True)
+
+### Add baseline information ###
+df_bsl = df_bsl.drop(bsl_to_cy_to_drop, axis=1, inplace=False)
+df_cy.reset_index(inplace=True)
+df_cy = df_cy.merge(df_bsl, how='left', on=code_clmn)
+df_cy.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+
+### Add ref uom and currency ###
+df_cy.reset_index(inplace=True)
+df_cy = df_cy.merge(df_uom_ref, how='left', on=code_clmn)
+df_cy.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+
+### convert uom and currency to reference ###
+
+# cy to ref (price, per, currency, volume, per)
+cy_clmn_list_to_conv = [cy_price_clmn, cy_price_uom_clmn, cy_price_per_clmn, cy_currency_clmn, cy_volume_clmn,
+                        cy_volume_uom_clmn, cy_volume_per_clmn]
+cy_to_ref_mult_list = [cy_to_ref_mult_price_uom_clmn, cy_to_ref_mult_price_per_clmn, cy_to_ref_mult_currency_clmn,
+                       cy_to_ref_mult_volume_uom_clmn, cy_to_ref_mult_volume_per_clmn]
+cy_ref_clmn_list = [cy_price_at_ref_clmn, uom_ref_uom_price_clmn, uom_ref_per_price_clmn,
+                    uom_ref_currency_clmn, cy_volume_at_ref_clmn, uom_ref_uom_volume_clmn, uom_ref_per_volume_clmn]
+
+df_cy = fc.convert_uom(df_cy, df_conv, cy_clmn_list_to_conv, cy_ref_clmn_list, cy_to_ref_mult_list,
+                       conv_multiplier_clmn, code_clmn, month_clmn,)
+
+# bgt to ref
+bgt_clmn_list_to_conv = [bgt_price_clmn, bgt_uom_clmn, bgt_per_clmn, bgt_currency_clmn, bgt_volume_clmn, bgt_uom_clmn,
+                         bgt_per_clmn]
+bgt_to_ref_mult_list = [bgt_to_ref_mult_price_uom_clmn, bgt_to_ref_mult_price_per_clmn, bgt_to_ref_mult_currency_clmn,
+                        bgt_to_ref_mult_volume_uom_clmn, bgt_to_ref_mult_volume_per_clmn]
+bgt_ref_clmn_list = [bgt_price_at_ref_clmn, uom_ref_uom_price_clmn, uom_ref_per_price_clmn,
+                     uom_ref_currency_clmn, bgt_volume_at_ref_clmn, uom_ref_uom_volume_clmn, uom_ref_per_volume_clmn]
+
+df_cy = fc.convert_uom(df_cy, df_conv, bgt_clmn_list_to_conv, bgt_ref_clmn_list, bgt_to_ref_mult_list,
+                       conv_multiplier_clmn, code_clmn, month_clmn,)
+
+# bsl to ref
+bsl_clmn_list_to_conv = [bsl_price_clmn, bsl_price_uom_clmn, bsl_price_per_clmn, bsl_currency_clmn, 'empty', 'empty',
+                         'empty']
+bsl_to_ref_mult_list = [bsl_to_ref_mult_price_uom_clmn, bsl_to_ref_mult_price_per_clmn, bsl_to_ref_mult_currency_clmn,
+                        'empty', 'empty']
+bsl_ref_clmn_list = [bsl_price_at_ref_clmn, uom_ref_uom_price_clmn, uom_ref_per_price_clmn,
+                     uom_ref_currency_clmn, 'empty', 'empty', 'empty']
+
+df_cy = fc.convert_uom(df_cy, df_conv, bsl_clmn_list_to_conv, bsl_ref_clmn_list, bsl_to_ref_mult_list,
+                       conv_multiplier_clmn, code_clmn, month_clmn)
+
+# avg ly to ref
+df_cy[ly_price_at_ref_clmn] = df_cy[bsl_price_ly] * df_cy[bsl_to_ref_mult_price_uom_clmn] * \
+                              df_cy[bsl_to_ref_mult_price_per_clmn] * df_cy[bsl_to_ref_mult_currency_clmn]
+
+### Spend and inflation calculations ###
+# LY avg spend ly_spd => avg_price * bgt_vol
+
+df_cy[ly_spend_avg_pr_bgt_vl_clmn] = df_cy[ly_price_at_ref_clmn] * df_cy[bgt_volume_at_ref_clmn]
+
+# BSL spend bsl_spd => bsl_price * bgt_vol
+df_cy[bsl_spend_bsl_pr_bgt_vl_clmn] = df_cy[bsl_price_at_ref_clmn] * df_cy[bgt_volume_at_ref_clmn]
+
+# baseline inflation (USD) bsl_inf => bsl_spd - ly_spd
+df_cy[bsl_inflation_clmn] = df_cy[bsl_spend_bsl_pr_bgt_vl_clmn] - df_cy[ly_spend_avg_pr_bgt_vl_clmn]
+
+# budget spend bgt_spd => bgt_price * bgt_vol
+df_cy[bgt_spend_bgt_pr_bgt_vl_clmn] = df_cy[bgt_price_at_ref_clmn] * df_cy[bgt_volume_at_ref_clmn]
+
+# budget savings bsl_sav => bgt_spd - bsl_spd
+df_cy[bgt_savings_clmn] = df_cy[bgt_spend_bgt_pr_bgt_vl_clmn] - df_cy[bsl_spend_bsl_pr_bgt_vl_clmn]
+
+# current year spend at budget volume cy_bgt_spd => cy_price * bgt_vol
+df_cy[bgt_spend_bgt_pr_cy_vl_clmn] = df_cy[bgt_price_at_ref_clmn] * df_cy[cy_volume_at_ref_clmn]
+
+# volume adjustment vol_adj => adj_bgt_spd - bgt_spd
+df_cy[volume_adjustment_clmn] = df_cy[bgt_spend_bgt_pr_cy_vl_clmn] - df_cy[bgt_spend_bgt_pr_bgt_vl_clmn]
+
+# current year spend cy_spd => cy_price * cy_vol
+df_cy[cy_spend_cy_pr_cy_vl_clmn] = df_cy[cy_price_at_ref_clmn] * df_cy[cy_volume_at_ref_clmn]
+
+# current year savings vs bgt cy_sav => cy_spd - adj_bgt_spd
+df_cy[cy_bgt_savings_clmn] = df_cy[bgt_spend_bgt_pr_cy_vl_clmn] - df_cy[cy_spend_cy_pr_cy_vl_clmn]
+
+# total savings total_sav => bsl_sav + cy_sav
+df_cy[bsl_spend_bsl_pr_cy_vl_clmn] = df_cy[bsl_price_at_ref_clmn] * df_cy[cy_volume_at_ref_clmn]
+df_cy[cy_bsl_savings_clmn] = df_cy[bsl_spend_bsl_pr_cy_vl_clmn] - df_cy[cy_spend_cy_pr_cy_vl_clmn]
+
+# volume influence bsl vol_inf_bsl => (bsl_price - cy_price) * (cy_volume - bsl_volume) 
+df_cy[volume_influence_vs_bsl_clmn] = (df_cy[bsl_price_clmn] - df_cy[cy_volume_clmn]) * \
+                                      (df_cy[cy_volume_clmn] - df_cy[bgt_volume_clmn])
+
+# volume influence bgt vol_inf_bgt => (bgt_price - cy_price) * (cy_volume - bgt_volume)
+df_cy[volume_influence_vs_bgt_clmn] = (df_cy[bgt_price_clmn] - df_cy[cy_volume_clmn]) * \
+                                      (df_cy[cy_volume_clmn] - df_cy[bgt_volume_clmn])
+
+### Filter NAN ###
+[df_cy, error_msg_engine] = fc.clean_nan_engine(df_cy, code_clmn,  month_clmn, engine_error_str)
+
+######################### Calculating Savings per PJ file #########################
+### filter desired columns from df_cy ###
+df_pj_clmn_list = [description_clmn, category_clmn, location_clmn, savings_type_clmn, cy_type_report_clmn,
+                   savings_type_clmn, frc_strategy_column]
+
+### convert uoms ###
+df_pjmp.reset_index(inplace=True)
+df_pjmp = df_pjmp.merge(df_uom_ref, how='left', on=code_clmn)
+df_pjmp.set_index(keys=[code_clmn], drop=True, inplace=True)
+
+pjmp_clmn_list_to_conv = [pjmp_cnst_clmn, pjmp_uom_clmn, pjmp_per_clmn, pjmp_currency_clmn, 'empty', 'empty', 'empty']
+pjmp_ref_clmn_list = [pjmp_cnst_at_ref_clmn,  uom_ref_uom_price_clmn, uom_ref_per_price_clmn, uom_ref_currency_clmn,
+                      'empty', 'empty', 'empty']
+pjmp_to_ref_mult_list = [pjmp_to_ref_mult_uom_clmn, pjmp_to_ref_mult_per_clmn, pjmp_to_ref_mult_currency_clmn,
+                         'empty', 'empty']
+df_pjmp = fc.convert_uom(df_pjmp, df_conv, pjmp_clmn_list_to_conv, pjmp_ref_clmn_list, pjmp_to_ref_mult_list,
+                         conv_multiplier_clmn, code_clmn)
+
+### include projects as columns ###
+pj_layer = fc.get_max_amount_of_code_repetitions(df_pjmp)
+
+proj_str_description_lt = fc.generate_prj_clm_list(proj_str_description, pj_layer)
+proj_str_value_lt = fc.generate_prj_clm_list(proj_str_value, pj_layer)
+proj_str_code_lt = fc.generate_prj_clm_list(proj_str_code, pj_layer)
+
+# create generate generic projects
+df_cy = fc.generate_generic_project_info(df_cy, category_clmn, proj_str_code_gen, proj_str_description_gen,
+                                         proj_str_value_gen, gen_pj_code_str, gen_pj_description_str, code_clmn, month_clmn)
+
+# calculate project values
+desired_calc_clmn_list = [pjmp_code_clmn, pjmp_description_clmn, pjmp_pcent_clmn, pjmp_cnst_at_ref_clmn,
+                          pjmp_start_month_clmn]
+desired_calc_clmn_list = [pjmp_code_clmn, pjmp_description_clmn, pjmp_pcent_clmn, pjmp_cnst_at_ref_clmn,
+                          pjmp_start_month_clmn]
+df_pjmp_short = df_pjmp[desired_calc_clmn_list]
+pj_delete_clmn_list = [pjmp_pcent_clmn, pjmp_cnst_at_ref_clmn, pjmp_start_month_clmn]
+
+df_cy = fc.add_projects(df_cy, df_pjmp_short, proj_str_description_lt, proj_str_value_lt, proj_str_code_lt,
+                        code_clmn, month_clmn, pjmp_code_clmn, pjmp_description_clmn, pjmp_pcent_clmn,
+                        pjmp_cnst_at_ref_clmn, pjmp_start_month_clmn, cy_bsl_savings_clmn, cy_volume_at_ref_clmn,
+                        uom_ref_per_price_clmn, uom_ref_per_price_clmn, proj_str_value_gen, pj_layer,
+                        pj_delete_clmn_list)
+
+### calculate savings per project and include on df_pj ###
+# pj_desired_list
+pj_desired_clmn_list = [pjmp_code_clmn, pjmp_sav_assignment_type]
+proj_str_description_lt = [proj_str_description_gen] + proj_str_description_lt
+proj_str_value_lt = [proj_str_value_gen] + proj_str_value_lt
+proj_str_code_lt = [proj_str_code_gen] + proj_str_code_lt
+
+new_str_clmn_list = [proj_str_code, proj_str_description, proj_str_value]
+df_pj = fc.create_project_dataframe(df_pjmp, df_cy, pj_desired_clmn_list, proj_str_description_lt, proj_str_value_lt,
+                                    proj_str_code_lt, pjmp_code_clmn, proj_str_value, new_str_clmn_list,
+                                    uom_ref_currency_clmn)
+
+#sum savings versus baseline
+
+### clean nan ###
+
+### Reorder columns ###
+# df_cy_clmn_list = [description_clmn, category_clmn, location_clmn, savings_type_clmn, cy_type_report_clmn,
+#                    savings_type_clmn, frc_strategy_column,
+#                    cy_price_clmn, cy_currency_clmn, cy_price_per_clmn, cy_price_uom_clmn, cy_volume_clmn,
+#                    cy_volume_per_clmn, cy_volume_uom_clmn,
+#                    bgt_price_clmn, bgt_currency_clmn, bgt_per_clmn, bgt_uom_clmn, bgt_volume_clmn, pred_code_clmn,
+#                    bsl_price_ly, bsl_price_clmn, bsl_currency_clmn, bsl_price_per_clmn, bsl_price_uom_clmn,
+#                    bsl_pred_code_clmn,
+#                    uom_ref_per_price_clmn, uom_ref_uom_price_clmn, uom_ref_currency_clmn, uom_ref_per_volume_clmn,
+#                    uom_ref_uom_volume_clmn,
+#                    cy_to_ref_mult_price_uom_clmn, cy_to_ref_mult_price_per_clmn, cy_to_ref_mult_currency_clmn,
+#                    cy_price_at_ref_clmn,
+#                    cy_to_ref_mult_volume_uom_clmn, cy_to_ref_mult_volume_per_clmn, cy_volume_at_ref_clmn,
+#                    bgt_to_ref_mult_price_uom_clmn, bgt_to_ref_mult_price_per_clmn, bgt_to_ref_mult_currency_clmn,
+#                    bgt_price_at_ref_clmn,
+#                    bgt_to_ref_mult_volume_uom_clmn, bgt_to_ref_mult_volume_per_clmn, bgt_volume_at_ref_clmn,
+#                    bsl_to_ref_mult_price_uom_clmn, bsl_to_ref_mult_price_per_clmn, bsl_to_ref_mult_currency_clmn,
+#                    bsl_price_at_ref_clmn, ly_price_at_ref_clmn,
+#                    ly_spend_avg_pr_bgt_vl_clmn, bsl_spend_bsl_pr_bgt_vl_clmn, bsl_spend_bsl_pr_cy_vl_clmn,
+#                    bgt_spend_bgt_pr_bgt_vl_clmn, bgt_spend_bgt_pr_cy_vl_clmn, cy_spend_cy_pr_cy_vl_clmn,
+#                    volume_adjustment_clmn, bsl_inflation_clmn, bgt_savings_clmn, cy_bgt_savings_clmn,
+#                    cy_bsl_savings_clmn, volume_influence_vs_bsl_clmn, volume_influence_vs_bgt_clmn]
+# df_cy = df_cy[df_cy_clmn_list]
+
+### save on CSV “Savings Report – FY YYYY period XX per PN”) ###
+df_cy.to_csv(filename_cy_csv)
+df_pj.to_csv(filename_pj_csv)
+
+# format excel table
+
+## error msg ##
+error_file_engine = open(filename_error_msg_engine, "w")
+error_file_engine.write(error_msg_engine)
+error_file_engine.close()
+
+# DOUBLE CHECK CALCULATIONS
 
 #############################                    3) REPORT GENERATOR                       #############################
 

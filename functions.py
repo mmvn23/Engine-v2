@@ -3,8 +3,8 @@ import numpy as np
 
 #############################                1) DATA CLEANING                     ######################################
 
-def remove_key_duplicates(old_dataframe, key_column):
 
+def remove_key_duplicates(old_dataframe, key_column):
     new_dataframe = old_dataframe.drop_duplicates(key_column)
 
     return new_dataframe
@@ -71,17 +71,21 @@ def generate_wide_clmn_conversion(base_dict, start_month, end_month, base_string
 
 
 def merge_and_drop(dataframe, df_equalizer, df_merge_clmn, equalizer_merge_clmn, new_clmn_name, code_clmn,
-                   error_str, old_error_list=""):
+                   error_str, old_error_list="", clm_list="empty"):
     function_error_str = "Failed merge and drop "
-    dataframe = dataframe.merge(df_equalizer, left_on=df_merge_clmn, right_on=equalizer_merge_clmn, how='left')
+
     new_error_list = old_error_list
+    dataframe = dataframe.merge(df_equalizer, how='left', left_on=df_merge_clmn, right_on=equalizer_merge_clmn)
+
     if df_merge_clmn in dataframe.columns:
-        dataframe.drop(df_merge_clmn, axis=1, inplace=True)
+        dataframe = dataframe.drop(df_merge_clmn, axis=1, inplace=False)
     if equalizer_merge_clmn in dataframe.columns:
-        dataframe.drop(equalizer_merge_clmn, axis=1, inplace=True)
+        dataframe = dataframe.drop(equalizer_merge_clmn, axis=1, inplace=False)
     equalizer_clmn_names = df_equalizer.columns
-    dataframe.rename(columns={equalizer_clmn_names[1]: new_clmn_name}, inplace=True)
-    [dataframe, mid_error_list, are_list_equal] = clean_nan(dataframe, code_clmn)
+
+    dataframe = dataframe.rename(columns={equalizer_clmn_names[1]: new_clmn_name}, inplace=False)
+
+    [dataframe, mid_error_list, are_list_equal] = clean_nan(dataframe, code_clmn, clm_list)
 
     if not are_list_equal:
         error_str_nan = "PNs with problems: "
@@ -92,11 +96,14 @@ def merge_and_drop(dataframe, df_equalizer, df_merge_clmn, equalizer_merge_clmn,
     return [dataframe, new_error_list]
 
 
-def clean_nan(dataframe, code_clmn):
+def clean_nan(dataframe, code_clmn, clm_list='empty'):
+    if clm_list == 'empty':
+        clm_list = dataframe.columns
+
     old_part_number_bgt_list = dataframe[code_clmn]
     old_part_number_bgt_list = [str(item) for item in old_part_number_bgt_list]
 
-    dataframe.dropna(inplace=True)
+    dataframe = dataframe.dropna(inplace=False, subset=clm_list)
 
     new_part_number_bgt_list = dataframe[code_clmn]
     new_part_number_bgt_list = [str(item) for item in new_part_number_bgt_list]
@@ -109,38 +116,120 @@ def clean_nan(dataframe, code_clmn):
 def melt_and_index(wide_dataframe, wide_vars, long_clmn, value_clmn, code_clmn):
     long_dataframe = pd.melt(frame=wide_dataframe, id_vars=wide_vars, value_vars=None, var_name=long_clmn,
                              value_name=value_clmn)
-    long_dataframe.set_index(keys=[code_clmn, long_clmn], drop=True, inplace=True)
+    long_dataframe = long_dataframe.set_index(keys=[code_clmn, long_clmn], drop=True, inplace=False)
 
     return long_dataframe
 
 
-def clean_types(dataframe, cleaning_clmns, error_str, old_error_list=""):
-    old_index_list = dataframe.index
+def convert_strings_to_nan(item):
+    if isinstance(item, str):
+        return np.nan
+    else:
+        return item
 
-    for item in cleaning_clmns:
-        dataframe = dataframe[dataframe[item].apply(lambda x: not isinstance(x, str))]
-        dataframe.loc[:, item] = pd.to_numeric(dataframe.loc[:, item])
+
+def convert_to_numeric(item):
+    item = pd.to_numeric(item)
+
+    return item
+
+
+def convert_to_zero(item):
+    if pd.isnull(item):
+        item = 0
+
+    return item
+
+def clean_types(dataframe, cleaning_clmns, error_str, old_error_list=""):
+    new_dataframe = dataframe
+    old_index_list = dataframe.index
+    # Use applymap to find str and substitute
+    dataframe = dataframe.filter(items=cleaning_clmns, axis=1).applymap(convert_strings_to_nan)
+    # delete these rows
+    dataframe = dataframe.dropna(axis=0, subset=cleaning_clmns, inplace=False)
+    # check which rows where deleted
 
     new_index_list = dataframe.index
     new_error_list = old_error_list
     [missing_codes, are_lists_equal] = list_differential(old_index_list, new_index_list)
 
+    # save list of deleted of rows into error msg
     if not are_lists_equal:
         error_str_nan = "PNs/month with problems: "
         aux = " -- "
         new_error_list = new_error_list + aux + error_str + aux + error_str_nan + str(missing_codes)
 
-    return [dataframe, new_error_list]
+    level_qty = dataframe.index.nlevels
+
+    if level_qty > 1:
+        df_missing_codes = pd.DataFrame(missing_codes, columns=['code', 'month'])
+        df_missing_codes_list = df_missing_codes['code'].to_list()
+
+        if len(df_missing_codes_list) != 0:
+           new_dataframe = new_dataframe.drop(df_missing_codes_list, level=0, axis=0)
+    else:
+        new_dataframe = new_dataframe.drop(missing_codes, axis=0)
+
+    for item in cleaning_clmns:
+        new_dataframe[item] = new_dataframe[item].apply(convert_to_numeric)
+
+    return [new_dataframe, new_error_list]
 
 
-def clear_extra_rows(dataframe, code_clmn, error_str, old_error_list=""):
-    old_index_list = dataframe[code_clmn]
-    dataframe.dropna(axis=0, inplace=True)
-    new_index_list = dataframe[code_clmn]
+def convert_nan_to_zero(dataframe, converting_clmns):
+    new_dataframe = dataframe
+
+    for item in converting_clmns:
+        new_dataframe[item] = new_dataframe[item].apply(convert_to_zero)
+
+    return new_dataframe
+
+
+def remove_from_list(list, item):
+    if item in list:
+        list.remove(item)
+    return list
+
+
+def drop_na_crossed(dataframe, ref_clmn, clm_list):
+    new_dataframe = dataframe
+    dataframe = dataframe.filter(items=clm_list, axis=1)
+
+    old_index_list = dataframe[ref_clmn]
+    dataframe = dataframe.dropna(axis=0, inplace=False)
+
+    is_there_nan = any(pd.isnull(old_index_list))
+
+    old_index_list = dataframe[ref_clmn]
+    old_index_list = [str(item) for item in old_index_list]
+    old_index_list = remove_from_list(old_index_list, 'nan')
+
+    new_index_list = dataframe[ref_clmn]
+    new_index_list = [str(item) for item in new_index_list]
+    [missing_codes, are_lists_equal] = list_differential(old_index_list, new_index_list)
+
+    new_dataframe = new_dataframe.drop(missing_codes, axis=0)
+
+    if is_there_nan:
+        new_dataframe = new_dataframe.dropna(axis=0, inplace=False)
+
+    return new_dataframe
+
+
+def clear_extra_rows(dataframe, ref_clmn, error_str, old_error_list="", clm_list='empty'):
+    if clm_list == 'empty':
+        clm_list = dataframe.columns
+
+    old_index_list = dataframe[ref_clmn]
+
+    dataframe = drop_na_crossed(dataframe, ref_clmn, clm_list)
+
+    new_index_list = dataframe[ref_clmn]
 
     old_index_list = [str(item) for item in old_index_list]
     new_index_list = [str(item) for item in new_index_list]
 
+    old_index_list = remove_from_list(old_index_list, 'nan')
     [missing_codes, are_lists_equal] = list_differential(old_index_list, new_index_list)
 
     new_error_list = old_error_list
@@ -155,7 +244,7 @@ def clear_extra_rows(dataframe, code_clmn, error_str, old_error_list=""):
 
 def generate_uom_ref_file(df_base, code_clmn, ref_uom, ref_currency, ref_uom_str, ref_currency_str):
     dataframe = df_base.filter(items=[code_clmn, ref_uom, ref_currency], axis=1)
-    dataframe.rename(columns={ref_uom: ref_uom_str, ref_currency: ref_currency_str}, inplace=True)
+    dataframe = dataframe.rename(columns={ref_uom: ref_uom_str, ref_currency: ref_currency_str}, inplace=False)
 
     return dataframe
 
@@ -167,72 +256,86 @@ def prepare_long_uom_ref_file(df_conv_short, code_list, code_clmn, conv_old_uom_
     df_conv_long = df_conv_short.query(query_str1, inplace=False)
 
     query_str2 = code_clmn + '=="' + conv_to_all_str + '"'
-    df_conv_short.query(query_str2, inplace=True)
+    df_conv_short = df_conv_short.query(query_str2, inplace=False)
 
-    for kk in range(0, len(code_list)):
-        df_conv_long = add_all_uom_fx_to_code(df_conv_long, df_conv_short, code_list[kk], code_clmn, conv_to_all_str)
+    for item in code_list:
+        df_conv_long = add_all_uom_fx_to_code(df_conv_long, df_conv_short, item, conv_to_all_str)
 
-    df_conv_long = df_conv_long.set_index(keys=[code_clmn, conv_old_uom_clmn, conv_new_uom_clmn], drop=False,
+    df_conv_long = df_conv_long.set_index(keys=[code_clmn, conv_old_uom_clmn, conv_new_uom_clmn], drop=True,
                                           inplace=False)
 
     return df_conv_long
 
 
-def add_all_uom_fx_to_code(dataframe, base_dataframe, code, code_clmn, conv_to_all_str):
-    base_dataframe[code_clmn] = base_dataframe[code_clmn].replace([conv_to_all_str], code)
+def add_all_uom_fx_to_code(dataframe, base_dataframe, code, conv_to_all_str):
+    base_dataframe = base_dataframe.replace(conv_to_all_str, code, inplace=False)
     dataframe = dataframe.append(base_dataframe)
 
     return dataframe
 
 
-def include_predecessors(old_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn):
-    new_df_bgt = old_df_bgt
-    new_df_bgt[pred_code_clmn] = new_df_bgt.index.get_level_values(code_clmn)
+def include_predecessors(dataframe, df_pred, pred_code_clmn, extra_clmn_name, code_clmn, month_clmn="empty"):
+    new_dataframe = dataframe
+    new_dataframe[extra_clmn_name] = new_dataframe.index.get_level_values(code_clmn)
 
     code_list = df_pred.index
-    print(code_list)
-    for item in code_list:
-        new_df_bgt = include_single_predecessor(new_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn, item)
 
-    return new_df_bgt
+    if month_clmn == "empty":
+        for item in code_list:
+            new_dataframe = include_single_predecessor_single_index(new_dataframe, df_pred, pred_code_clmn, code_clmn,
+                                                                    item)
+    else:
+        for item in code_list:
+            new_dataframe = include_single_predecessor_double_index(new_dataframe, df_pred, pred_code_clmn, code_clmn,
+                                                                    month_clmn, item)
+
+    return new_dataframe
 
 
-def include_single_predecessor(old_df_bgt, df_pred, pred_code_clmn, code_clmn, month_clmn, new_code):
-    new_df_bgt = old_df_bgt
-    print(df_pred)
+def include_single_predecessor_single_index(dataframe, df_pred, pred_code_clmn, code_clmn, new_code):
+
     bgt_pred = df_pred.loc[new_code, pred_code_clmn]
-    print(new_code, bgt_pred)
+
+    add_row = dataframe.reset_index(inplace=False)
+    add_row = add_row[add_row.apply(lambda x: x[code_clmn] == bgt_pred, axis=1)]
+    add_row[code_clmn] = new_code
+    add_row = add_row.set_index(keys=[code_clmn], drop=True, inplace=False)
+
+    new_dataframe = dataframe.append(add_row)
+
+    return new_dataframe
+
+
+def include_single_predecessor_double_index(dataframe, df_pred, pred_code_clmn, code_clmn, month_clmn, new_code):
+    new_dataframe = dataframe
+
+    bgt_pred = df_pred.loc[new_code, pred_code_clmn]
+
     bgt_pred_array = [12 * [bgt_pred],
                       ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']]
 
     bgt_pred_tuple = list(zip(*bgt_pred_array))
 
-    print('tuple:')
-    print(bgt_pred_tuple)
-    print('bgt file::')
-    print(new_df_bgt.index)
-    add_row = new_df_bgt.filter(bgt_pred_tuple, axis=0)
-    add_row.reset_index(inplace=True)
+    add_row = new_dataframe.filter(bgt_pred_tuple, axis=0)
+    add_row = add_row.reset_index(inplace=False)
     add_row[code_clmn] = new_code
-    add_row.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
-    print('add row:::')
-    print(add_row)
+    add_row = add_row.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=False)
 
-    new_df_bgt = new_df_bgt.append(add_row)
+    new_dataframe = new_dataframe.append(add_row)
 
-    return new_df_bgt
+    return new_dataframe
 
 
 def generate_price_curve_based_on_constant(old_dataframe, value_list, start_month, end_month, df_id_vars, month_clmn,
                                            price_clmn, code_clmn, strategy_clmn, strategy_str, desired_clmn_list):
     month_list = range(start_month, end_month+1)
     new_dataframe = old_dataframe
-    new_dataframe.rename(columns={price_clmn: str(month_list[0])}, inplace=True)
+    new_dataframe = new_dataframe.rename(columns={price_clmn: str(month_list[0])}, inplace=False)
 
     for item in month_list:
         new_dataframe[str(item)] = value_list
 
-    new_dataframe = generate_price_curve_based_on_curve(old_dataframe, df_id_vars, month_clmn, price_clmn, code_clmn,
+    new_dataframe = generate_price_curve_based_on_curve(new_dataframe, df_id_vars, month_clmn, price_clmn, code_clmn,
                                                         strategy_clmn, strategy_str, desired_clmn_list)
 
     return new_dataframe
@@ -262,11 +365,11 @@ def generate_price_curve_based_on_budget(old_dataframe, start_month, end_month, 
         wide_dataframe[str(item)] = value
 
     long_dataframe = melt_and_index(wide_dataframe, old_df_clmn_lt, month_clmn, price_clmn, code_clmn)
-    long_dataframe.drop(columns=price_clmn, inplace=True)
+    long_dataframe = long_dataframe.drop(columns=price_clmn, inplace=False)
 
     # budget file
     ref_data = ref_file.filter(items=ref_clmn_lt, axis=1)
-    ref_data.rename(columns=matching_tuple, inplace=True)
+    ref_data = ref_data.rename(columns=matching_tuple, inplace=False)
 
     new_dataframe = long_dataframe.merge(ref_data, how='left', left_index=True, right_index=True)
     new_dataframe[strategy_clmn] = strategy_str
@@ -278,6 +381,7 @@ def generate_price_curve_based_on_budget(old_dataframe, start_month, end_month, 
 def generate_price_curve_based_on_actuals(old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
                                           strategy_clmn, strategy_str, ref_file, ref_clmn_lt, matching_tuple,
                                           act_price_clmn, act_volume_clmn, desired_clmn_list):
+
     old_df_clmn_lt = old_dataframe.columns
     month_list = range(start_month, end_month + 1)
     wide_dataframe = old_dataframe
@@ -287,7 +391,7 @@ def generate_price_curve_based_on_actuals(old_dataframe, start_month, end_month,
         wide_dataframe[str(item)] = value
 
     long_dataframe = melt_and_index(wide_dataframe, old_df_clmn_lt, month_clmn, price_clmn, code_clmn)
-    long_dataframe.drop(columns=price_clmn, inplace=True)
+    long_dataframe = long_dataframe.drop(columns=price_clmn, inplace=False)
 
     # budget file
     ref_data = ref_file.filter(items=ref_clmn_lt, axis=1)
@@ -298,25 +402,28 @@ def generate_price_curve_based_on_actuals(old_dataframe, start_month, end_month,
     spend_clmn = 'act_spend'
     df_avg[spend_clmn] = df_avg[act_volume_clmn] * df_avg[act_price_clmn]
     # filter data (only code and PN)
+
     df_avg = df_avg.groupby(level=code_clmn).sum()
     df_avg[act_price_clmn] = df_avg[spend_clmn] / df_avg[act_volume_clmn]
     df_avg = df_avg.filter(items=[act_price_clmn], axis=1)
 
-    df_avg.reset_index(inplace=True)
-    ref_data.reset_index(inplace=True)
+    df_avg = df_avg.reset_index(inplace=False)
+    ref_data = ref_data.reset_index(inplace=False)
     ref_data = ref_data.drop(columns=month_clmn)
 
     ref_data = ref_data.merge(df_avg, how='left', on=code_clmn)
+    ref_data = remove_key_duplicates(ref_data, code_clmn)
 
-    long_dataframe.reset_index(inplace=True)
+    long_dataframe = long_dataframe.reset_index(inplace=False)
 
     new_dataframe = long_dataframe.merge(ref_data, how='left', on=code_clmn)
 
-    new_dataframe.rename(columns=matching_tuple, inplace=True)
-    new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+    new_dataframe = new_dataframe.rename(columns=matching_tuple, inplace=False)
+    new_dataframe = new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=False)
 
     new_dataframe[strategy_clmn] = strategy_str
     new_dataframe = new_dataframe.filter(items=desired_clmn_list, axis=1)
+
 
     return new_dataframe
 
@@ -324,15 +431,11 @@ def generate_price_curve_based_on_actuals(old_dataframe, start_month, end_month,
 def generate_price_curve_based_on_inflation(old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
                                             base_price_clmn, inflation_clmn, inf_month_clmn, strategy_clmn,
                                             strategy_str, desired_clmn_list):
-    # (old_dataframe, start_month, end_month, month_clmn, price_clmn, code_clmn,
-    #  strategy_clmn, strategy_str, ref_file, ref_clmn_lt, matching_tuple,
-    #  act_price_clmn, act_volume_clmn):
 
     # add column with inflated price
     wide_dataframe = old_dataframe
     inf_price_clmn = 'inf_price'
     wide_dataframe[inf_price_clmn] = wide_dataframe[base_price_clmn] * (1 + wide_dataframe[inflation_clmn])
-
 
     # create month columns from report month+1 until 12
     old_df_clmn_lt = old_dataframe.columns
@@ -345,16 +448,17 @@ def generate_price_curve_based_on_inflation(old_dataframe, start_month, end_mont
 
     # wide to long
     new_dataframe = melt_and_index(wide_dataframe, old_df_clmn_lt, month_clmn, price_clmn, code_clmn)
-    new_dataframe.drop(columns=price_clmn, inplace=True)
+    new_dataframe = new_dataframe.drop(columns=price_clmn, inplace=False)
 
-    new_dataframe.reset_index(inplace=True)
+    new_dataframe = new_dataframe.reset_index(inplace=False)
     new_dataframe[month_clmn] = new_dataframe[month_clmn].astype(int)
 
     new_dataframe.loc[new_dataframe[month_clmn] < new_dataframe[inf_month_clmn], price_clmn] = new_dataframe[base_price_clmn]
     new_dataframe.loc[new_dataframe[month_clmn] >= new_dataframe[inf_month_clmn], price_clmn] = new_dataframe[inf_price_clmn]
 
     new_dataframe[strategy_clmn] = strategy_str
-    new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+    new_dataframe[month_clmn] = new_dataframe[month_clmn].astype(str)
+    new_dataframe = new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=False)
     new_dataframe = new_dataframe.filter(items=desired_clmn_list, axis=1)
     # drop base price and inflation column
 
@@ -363,9 +467,9 @@ def generate_price_curve_based_on_inflation(old_dataframe, start_month, end_mont
 
 def add_category_to_frc(old_dataframe, category_dataframe, code_clmn, month_clmn, category_clmn):
 
-    category_dataframe.reset_index(inplace=True)
+    category_dataframe = category_dataframe.reset_index(inplace=False)
     category_dataframe = category_dataframe.filter(items=[code_clmn, month_clmn, category_clmn], axis=1)
-    category_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+    category_dataframe = category_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=False)
     new_dataframe = old_dataframe.merge(category_dataframe, how='inner', left_index=True, right_index=True)
 
     return new_dataframe
@@ -374,10 +478,266 @@ def add_category_to_frc(old_dataframe, category_dataframe, code_clmn, month_clmn
 def fix_index(old_dataframe, code_clmn, month_clmn):
     new_dataframe = old_dataframe
 
-    # new_dataframe.drop(columns=[code_clmn, month_clmn], inplace=True)
-    new_dataframe.reset_index(inplace=True)
-    new_dataframe.loc[:, month_clmn] = pd.to_numeric(new_dataframe.loc[:, month_clmn])
+    new_dataframe = new_dataframe.reset_index(inplace=False)
+    new_dataframe[month_clmn] = new_dataframe[month_clmn].apply(convert_to_numeric)
 
-    new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+    new_dataframe = new_dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=False)
 
     return new_dataframe
+
+
+#############################              2) CALCULATION ENGINE                  ######################################
+
+def convert_uom(dataframe, df_conv, old_uom_list, new_uom_list, mult_list, conv_multiplier_clmn, code_clmn,
+                month_clmn='empty'):
+
+    old_price_value_clmn = old_uom_list[0]
+    old_price_uom_clmn = old_uom_list[1]
+    old_price_per_clmn = old_uom_list[2]
+    old_price_currency_clmn = old_uom_list[3]
+    old_volume_value_clmn = old_uom_list[4]
+    old_volume_uom_clmn = old_uom_list[5]
+    old_volume_per_clmn = old_uom_list[6]
+
+    new_price_value_clmn = new_uom_list[0]
+    new_price_uom_clmn = new_uom_list[1]
+    new_price_per_clmn = new_uom_list[2]
+    new_price_currency_clmn = new_uom_list[3]
+    new_volume_value_clmn = new_uom_list[4]
+    new_volume_uom_clmn = new_uom_list[5]
+    new_volume_per_clmn = new_uom_list[6]
+
+    mult_price_uom_clmn = mult_list[0]
+    mult_price_per_clmn = mult_list[1]
+    mult_price_currency_clmn = mult_list[2]
+    mult_volume_uom_clmn = mult_list[3]
+    mult_volume_per_clmn = mult_list[4]
+
+    dataframe.reset_index(inplace=True)
+
+    dataframe = find_multiplier(dataframe, df_conv, code_clmn, old_price_uom_clmn, new_price_uom_clmn,
+                                conv_multiplier_clmn, mult_price_uom_clmn)
+    dataframe[mult_price_uom_clmn] = 1/dataframe[mult_price_uom_clmn]
+
+    dataframe[mult_price_per_clmn] = dataframe[old_price_per_clmn]/dataframe[new_price_per_clmn]
+
+    dataframe = find_multiplier(dataframe, df_conv, code_clmn, old_price_currency_clmn, new_price_currency_clmn,
+                                conv_multiplier_clmn, mult_price_currency_clmn)
+
+    dataframe[new_price_value_clmn] = dataframe[old_price_value_clmn] * dataframe[mult_price_uom_clmn] * \
+                                      dataframe[mult_price_per_clmn] * dataframe[mult_price_currency_clmn]
+
+    if mult_volume_per_clmn != 'empty':
+        dataframe = find_multiplier(dataframe, df_conv, code_clmn, old_volume_uom_clmn, new_volume_uom_clmn,
+                                    conv_multiplier_clmn, mult_volume_uom_clmn)
+        dataframe[mult_volume_per_clmn] = dataframe[new_volume_per_clmn]/dataframe[old_volume_per_clmn]
+        dataframe[new_volume_value_clmn] = dataframe[old_volume_value_clmn] * dataframe[mult_volume_uom_clmn] * \
+                                           dataframe[mult_volume_per_clmn]
+
+    if month_clmn != 'empty':
+        dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+    else:
+        dataframe.set_index(keys=code_clmn, drop=True, inplace=True)
+
+    return dataframe
+
+
+def find_multiplier(dataframe, df_conv, code_clmn, old_clmn, new_clmn, old_name_clmn, new_name_clmn):
+
+    dataframe = dataframe.merge(df_conv, how='left', left_on=[code_clmn, old_clmn, new_clmn], right_index=True)
+    dataframe.rename(columns={old_name_clmn: new_name_clmn}, inplace=True)
+
+    return dataframe
+
+
+def clean_nan_engine(dataframe, code_clmn, month_clmn, error_str, old_error_list='empty', clm_list='empty'):
+    if clm_list == 'empty':
+        clm_list = dataframe.columns
+
+    dataframe.reset_index(inplace=True)
+
+    old_part_number_bgt_list = dataframe[code_clmn]
+    old_part_number_bgt_list = set(old_part_number_bgt_list)
+
+    old_part_number_bgt_list = [str(item) for item in old_part_number_bgt_list]
+
+    dataframe = dataframe.dropna(inplace=False, subset=clm_list)
+
+    new_part_number_bgt_list = dataframe[code_clmn]
+    new_part_number_bgt_list = set(new_part_number_bgt_list)
+
+    new_part_number_bgt_list = [str(item) for item in new_part_number_bgt_list]
+
+    [missing_codes, are_lists_equal] = list_differential(old_part_number_bgt_list, new_part_number_bgt_list)
+
+    new_error_list = old_error_list
+
+    if not are_lists_equal:
+        error_str_nan = "Rows w/Nan: "
+        aux = " -- "
+        new_error_list = new_error_list + aux + error_str + aux + error_str_nan + str(missing_codes)
+
+    dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+
+    return [dataframe, new_error_list]
+
+
+def get_max_amount_of_code_repetitions(dataframe):
+    code_list = dataframe.index.tolist()
+
+    code_qty = []
+    for item in code_list:
+        code_qty.append(code_list.count(item))
+
+    max_qty = max(code_qty)
+
+    return max_qty
+
+
+def generate_prj_clm_list(proj_str, layer_qty):
+    proj_str_lt = []
+
+    for i in range(1, layer_qty+1):
+        proj_str_lt.append(proj_str+str(i))
+
+    return proj_str_lt
+
+
+def generate_generic_project_info(dataframe, category_clmn, pj_code_clmn, pj_name_clmn, pj_value_clmn, gen_code_str,
+                                  gen_name_str, code_clmn, month_clmn):
+
+    category_list = set(dataframe[category_clmn])
+
+    pj_code_list = generate_code_list(len(category_list), gen_code_str)
+    pj_name_list = generate_name_list(category_list, gen_name_str)
+
+    df_gen = pd.DataFrame(category_list, columns=[category_clmn])
+    df_gen[pj_code_clmn] = pj_code_list
+    df_gen[pj_name_clmn] = pj_name_list
+    df_gen[pj_value_clmn] = 0
+
+    dataframe.reset_index(inplace=True)
+    dataframe = dataframe.merge(df_gen, how='left', left_on=category_clmn, right_on=category_clmn)
+    dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+
+    return dataframe
+
+
+def generate_name_list(category_list, gen_name_str):
+    name_list = []
+
+    for item in category_list:
+        name_list.append(item+gen_name_str)
+
+    return name_list
+
+
+def generate_code_list(category_list_size, gen_code_str):
+    code_list = []
+
+    for ii in range(1, category_list_size+1):
+        if ii < 10:
+            code_list.append(gen_code_str + '00' + str(ii))
+        elif ii < 100:
+            code_list.append(gen_code_str + '0' + str(ii))
+        else:
+            code_list.append(gen_code_str + str(ii))
+
+    return code_list
+
+
+def add_projects(dataframe, df_project,  pj_description_list, pj_value_list, pj_code_list, code_clmn, month_clmn,
+                 pjmp_code_clmn, pjmp_description_clmn, pcent_clmn, cnst_clmn_at_ref, start_mth_clmn, bsl_sav_clmn,
+                 volume_at_ref_clmn, cnst_per_clmn, volume_per_clmn_at_ref, pj_gen_value_clmn, layers, delete_list):
+
+    df_project.reset_index(inplace=True)
+    df_remainder_pj = df_project
+    dataframe[pj_gen_value_clmn] = dataframe[bsl_sav_clmn]
+
+    for kk in range(0, layers):
+
+        [df_clean_pj, df_remainder_pj] = remove_project_duplicates(df_remainder_pj, code_clmn)
+
+        dataframe.reset_index(inplace=True)
+        dataframe = dataframe.merge(df_clean_pj, how='left', left_on=code_clmn, right_on=code_clmn)
+        dataframe[pj_value_list[kk]] = dataframe.apply(lambda x: calculate_project(x[bsl_sav_clmn],
+                                                                                   x[volume_at_ref_clmn],
+                                                                                   x[pcent_clmn], x[cnst_clmn_at_ref],
+                                                                                   x[start_mth_clmn], x[month_clmn],
+                                                                                   x[cnst_per_clmn],
+                                                                                   x[volume_per_clmn_at_ref]),
+                                                                                  axis=1)
+        dataframe.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
+        rename_base = {pjmp_code_clmn: pj_code_list[kk],
+                       pjmp_description_clmn: pj_description_list[kk]}
+        dataframe = dataframe.rename(columns=rename_base, inplace=False)
+        dataframe.drop(delete_list, axis=1, inplace=True)
+        dataframe[pj_gen_value_clmn] = dataframe[pj_gen_value_clmn] - dataframe[pj_value_list[kk]]
+
+    return dataframe
+
+
+def calculate_project(savings, volume, pcent, cnst, start_mth, month, cnst_per, vol_per):
+
+    if convert_to_numeric(start_mth) > convert_to_numeric(month):
+        value = 0
+    else:
+        value_cnst = volume/vol_per * cnst/cnst_per
+        value_pcent = pcent * savings
+
+        value_cnst = 0 if np.isnan(value_cnst) else value_cnst
+        value_pcent = 0 if np.isnan(value_pcent) else value_pcent
+
+        value = value_cnst + value_pcent
+
+    return value
+
+
+def remove_project_duplicates(df_pj, code_column):
+    df_clean_pj = remove_key_duplicates(df_pj, code_column)
+
+    [missing_codes, are_lists_equal] = list_differential(df_pj.index, df_clean_pj.index)
+    df_remainder_pj =df_pj.filter(items=missing_codes, axis=0)
+
+    return [df_clean_pj, df_remainder_pj]
+
+
+def create_project_dataframe(df_pj, df_cy, pj_desired_clmn_list, proj_str_description_lt, proj_str_value_lt,
+                             proj_str_code_lt, pj_code_clmn, pj_value_clmn, new_str_clmn_list, uom_ref_currency_clmn):
+    pj_code = new_str_clmn_list[0]
+    pj_description = new_str_clmn_list[1]
+    pj_value = new_str_clmn_list[2]
+
+    df_pj.reset_index(inplace=True)
+    df_pj = df_pj[pj_desired_clmn_list]
+
+    df_cy = df_cy.reset_index(inplace=False)
+    df_cy = df_cy[proj_str_description_lt + proj_str_value_lt + proj_str_code_lt + [uom_ref_currency_clmn]]
+
+    cy_len = int(df_cy.shape[1]/3)
+    short_clmn_list = [proj_str_code_lt[0], proj_str_description_lt[0], proj_str_value_lt[0], uom_ref_currency_clmn]
+    new_cy = df_cy[short_clmn_list]
+    new_cy = new_cy.rename(columns={proj_str_code_lt[0]: pj_code,
+                                    proj_str_description_lt[0]: pj_description,
+                                    proj_str_value_lt[0]:  pj_value}, inplace=False)
+
+    for kk in range(1, cy_len):
+        short_clmn_list = [proj_str_code_lt[kk], proj_str_description_lt[kk], proj_str_value_lt[kk],
+                           uom_ref_currency_clmn]
+        add_cy = df_cy[short_clmn_list]
+        add_cy = add_cy.rename(columns={proj_str_code_lt[kk]: pj_code,
+                                        proj_str_description_lt[kk]: pj_description,
+                                        proj_str_value_lt[kk]:  pj_value}, inplace=False)
+        new_cy = new_cy.append(add_cy)
+
+    new_cy = pd.pivot_table(new_cy, values=pj_value, index=[pj_code, pj_description], aggfunc=np.sum)
+    new_cy.reset_index(inplace=True)
+
+    df_pj = df_pj.drop_duplicates(pj_code_clmn)
+
+    df_pj = new_cy.merge(df_pj, how='left', left_on=pj_code, right_on=pj_code_clmn)
+    df_pj.set_index(keys=pj_code, drop=True, inplace=True)
+
+    return df_pj
+
+
