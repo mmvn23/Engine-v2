@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import functions as fc
+import xlsxwriter
 
 # List of inputs (excel files):
 #   1) Budget - OK
@@ -20,12 +21,12 @@ import functions as fc
 #############################                Input Variables                      ######################################
 report_month = 5
 Fiscal_Year = '2020'
-filename_error_msg = './outputs/error msg {0}-{1}.txt'.format(Fiscal_Year, report_month)
+filename_error_msg = './outputs/CSV files/error msg {0}-{1}.txt'.format(Fiscal_Year, report_month)
 
 ########################    Data cleaning    ########################
 ### Budget ###
 filename_bgt = './inputs/PAF.xlsx'
-filename_bgt_csv = './outputs/budget {}.csv'.format(Fiscal_Year)
+filename_bgt_csv = './outputs/CSV files/budget {}.csv'.format(Fiscal_Year)
 
 code_clmn = 'code'
 description_clmn = 'description'
@@ -78,7 +79,7 @@ bgt_error_str = "\nBgt file:\n"
 
 ### actuals ###
 filename_act = './inputs/YTD.xlsx'
-filename_act_csv = './outputs/actuals {0}-{1}.csv'.format(Fiscal_Year, report_month)
+filename_act_csv = './outputs/CSV files/actuals {0}-{1}.csv'.format(Fiscal_Year, report_month)
 
 act_price_clmn = 'act_price'
 act_currency_report_clmn = 'report_act_currency'
@@ -128,7 +129,7 @@ act_error_str = "\nAct file:\n"
 
 ### forecast ###
 filename_frc = './inputs/YTG.xlsx'
-filename_frc_csv = './outputs/forecast {0}-{1}.csv'.format(Fiscal_Year, report_month)
+filename_frc_csv = './outputs/CSV files/forecast {0}-{1}.csv'.format(Fiscal_Year, report_month)
 
 sheet_frc_vol = 'Volume'
 sheet_frc_as_bgt = 'Budget'
@@ -229,7 +230,7 @@ frc_error_str = "\nForecast file:\n"
 
 ### baseline ###
 filename_bsl = './inputs/Baseline.xlsx'
-filename_bsl_csv = './outputs/baseline {0}.csv'.format(Fiscal_Year)
+filename_bsl_csv = './outputs/CSV files/baseline {0}.csv'.format(Fiscal_Year)
 df_bsl_raw_clmn_expect_lt = ['Part Number', 'Plant', 'Description', 'Baseline', 'Unity', '1 or 1,000? ', 'FX',
                              'Last FY']
 bsl_error_str = "\nBaseline file:\n"
@@ -253,7 +254,7 @@ bsl_clmns_conversion = {df_bsl_raw_clmn_expect_lt[0]: code_clmn,
 
 ### predecessor ###
 filename_pred = './inputs/yhold.xlsx'
-filename_pred_csv = './outputs/predecessors {0}-{1}.csv'.format(Fiscal_Year, report_month)
+filename_pred_csv = './outputs/CSV files/predecessors {0}-{1}.csv'.format(Fiscal_Year, report_month)
 df_pred_raw_clmn_expect_lt = ['From', 'To']
 pred_error_str = "\nPredecessor file:\n"
 pred_clmns_conversion = {df_pred_raw_clmn_expect_lt[0]: pred_code_clmn,
@@ -261,7 +262,7 @@ pred_clmns_conversion = {df_pred_raw_clmn_expect_lt[0]: pred_code_clmn,
 
 ### project mapping ###
 filename_pjmp = './inputs/project mapping.xlsx'
-filename_pjmp_csv = './outputs/project mapping {0}-{1}.csv'.format(Fiscal_Year, report_month)
+filename_pjmp_csv = './outputs/CSV files/project mapping {0}-{1}.csv'.format(Fiscal_Year, report_month)
 
 sheet_pjmp_pcent = '% based'
 sheet_pjmp_cnst = 'Value'
@@ -326,12 +327,12 @@ filename_uom_eq = './inputs/unity equalization.xlsx'
 filename_savings_type_eq = './inputs/sav type equalization.xlsx'
 filename_project_type_eq = './inputs/proj type equalization.xlsx'
 
-filename_category_eq_csv = './outputs/category equalization.csv'
-filename_location_eq_csv = './outputs/location equalization.csv'
-filename_currency_eq_csv = './outputs/currency equalization.csv'
-filename_uom_eq_csv = './outputs/uom equalization.csv'
-filename_savings_type_eq_csv = './outputs/savings type equalization.csv'
-filename_project_type_eq_csv = './outputs/project type equalization.csv'
+filename_category_eq_csv = './outputs/CSV files/category equalization.csv'
+filename_location_eq_csv = './outputs/CSV files/location equalization.csv'
+filename_currency_eq_csv = './outputs/CSV files/currency equalization.csv'
+filename_uom_eq_csv = './outputs/CSV files/uom equalization.csv'
+filename_savings_type_eq_csv = './outputs/CSV files/savings type equalization.csv'
+filename_project_type_eq_csv = './outputs/CSV files/project type equalization.csv'
 
 df_category_eq_raw_clmn_expect_lt = ['Report category', 'Standard category']
 df_location_eq_raw_clmn_expect_lt = ['Report plant', 'Standard plant']
@@ -362,8 +363,8 @@ project_type_eq_error_str = "\nPj tp eq file:\n"
 
 ### uom and currency conversion ###
 filename_conv = './inputs/Conversion table.xlsx'
-filename_conv_csv = './outputs/conversion_table.csv'
-filename_ref_uom_csv = './outputs/reference_uom_currency.csv'
+filename_conv_csv = './outputs/CSV files/conversion_table.csv'
+filename_ref_uom_csv = './outputs/CSV files/reference_uom_currency.csv'
 
 reference_currency = 'USD'
 conv_old_uom_clmn = "Old UoM"
@@ -389,7 +390,7 @@ uom_ref_currency_clmn = 'Ref_currency'
 uom_ref_per_volume_clmn = 'Ref_per_volume'
 uom_ref_uom_volume_clmn = 'Ref_uom_volume'
 
-filename_uom_ref_csv = './outputs/uom reference.csv'
+filename_uom_ref_csv = './outputs/CSV files/uom reference.csv'
 
 ########################    Calculation Engine    ########################
 cy_volume_clmn = 'current_year_volume'
@@ -445,9 +446,13 @@ volume_influence_vs_bgt_clmn = 'volume_influence_vs_budget'
 
 engine_error_str = 'ENGINE ERROR: '
 
-filename_cy_csv = './outputs/Savings Report – FY{0} P{1} per PN.csv'.format(Fiscal_Year, report_month)
-filename_pj_csv = './outputs/Projects Report – FY{0} P{1} per PN.csv'.format(Fiscal_Year, report_month)
-filename_error_msg_engine = './outputs/error msg Sv Rpt – FY{0} P{1} per PN.txt'.format(Fiscal_Year, report_month)
+filename_cy_csv = './outputs/CSV files/Savings Report – FY{0} P{1} per PN.csv'.format(Fiscal_Year, report_month)
+filename_pj_csv = './outputs/CSV files/Projects Report – FY{0} P{1} per PN.csv'.format(Fiscal_Year, report_month)
+filename_error_msg_engine = './outputs/CSV files/error msg Sv Rpt – FY{0} P{1} per PN.txt'.format(Fiscal_Year, report_month)
+
+filename_cy_pj_xlsx = './outputs/Savings Report – FY{0} P{1} per PN.xlsx'.format(Fiscal_Year, report_month)
+sheetname_cy = 'Part-number Report'
+sheetname_pj = 'Project Report'
 
 pjmp_cnst_at_ref_clmn = 'constant_at_ref'
 pjmp_to_ref_mult_uom_clmn = 'pjmp_to_ref_multiplier_uom'
@@ -464,6 +469,13 @@ proj_str_code_gen = 'project_code_0'
 
 gen_pj_code_str = 'GP-'
 gen_pj_description_str = '-Negotiations'
+
+color_list = ['fef5a8', 'c5f19a', 'b9d0e8', 'd6bfd4', 'f79494']
+cy_color_index_for_clmns = [9, 16, 22, 28, 33, 36, 37, 39, 40, 43, 44, 46, 47, 50, 51, 52, 59, 65, 68, 71, 74, 77, 80,
+                            83]
+cy_color_order = [0, 1, 2, 0, 1, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 4, 1, 2, 0, 1, 2, 0, 1, 2]
+pj_color_index_for_clmns = [1, 2, 3, 4]
+pj_color_order = [0, 1, 2, 3, 4]
 
 #############################                1) DATA CLEANING                     ######################################
 ########################    Load excel files    ########################
@@ -572,9 +584,9 @@ df_pjmp_pj_list = df_pjmp_pj_list.filter(items=df_pjmp_pj_list_raw_clmn_expect_l
 [df_wide_bgt, error_msg] = fc.clear_extra_rows(df_wide_bgt, df_wide_bgt_raw_clmn_expect_lt[0], bgt_error_str,
                                                error_msg)
 ### actuals ###
+
 [df_wide_act, error_msg] = fc.clear_extra_rows(df_wide_act, df_wide_act_raw_clmn_expect_lt[0], act_error_str,
                                                error_msg, df_wide_act_raw_clmn_expect_lt_base)
-
 ### forecast ###
 # forecast files will be fully generated from scratch, therefore, there is not need to clean extra rows.
 
@@ -1212,6 +1224,7 @@ df_cy.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
 ### Add ref uom and currency ###
 df_cy.reset_index(inplace=True)
 df_cy = df_cy.merge(df_uom_ref, how='left', on=code_clmn)
+df_cy[month_clmn] = df_cy[month_clmn].astype('int64', copy=False)
 df_cy.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=True)
 
 ### convert uom and currency to reference ###
@@ -1357,34 +1370,46 @@ df_pj = fc.create_project_dataframe(df_pjmp, df_cy, pj_desired_clmn_list, proj_s
 ### clean nan ###
 
 ### Reorder columns ###
-# df_cy_clmn_list = [description_clmn, category_clmn, location_clmn, savings_type_clmn, cy_type_report_clmn,
-#                    savings_type_clmn, frc_strategy_column,
-#                    cy_price_clmn, cy_currency_clmn, cy_price_per_clmn, cy_price_uom_clmn, cy_volume_clmn,
-#                    cy_volume_per_clmn, cy_volume_uom_clmn,
-#                    bgt_price_clmn, bgt_currency_clmn, bgt_per_clmn, bgt_uom_clmn, bgt_volume_clmn, pred_code_clmn,
-#                    bsl_price_ly, bsl_price_clmn, bsl_currency_clmn, bsl_price_per_clmn, bsl_price_uom_clmn,
-#                    bsl_pred_code_clmn,
-#                    uom_ref_per_price_clmn, uom_ref_uom_price_clmn, uom_ref_currency_clmn, uom_ref_per_volume_clmn,
-#                    uom_ref_uom_volume_clmn,
-#                    cy_to_ref_mult_price_uom_clmn, cy_to_ref_mult_price_per_clmn, cy_to_ref_mult_currency_clmn,
-#                    cy_price_at_ref_clmn,
-#                    cy_to_ref_mult_volume_uom_clmn, cy_to_ref_mult_volume_per_clmn, cy_volume_at_ref_clmn,
-#                    bgt_to_ref_mult_price_uom_clmn, bgt_to_ref_mult_price_per_clmn, bgt_to_ref_mult_currency_clmn,
-#                    bgt_price_at_ref_clmn,
-#                    bgt_to_ref_mult_volume_uom_clmn, bgt_to_ref_mult_volume_per_clmn, bgt_volume_at_ref_clmn,
-#                    bsl_to_ref_mult_price_uom_clmn, bsl_to_ref_mult_price_per_clmn, bsl_to_ref_mult_currency_clmn,
-#                    bsl_price_at_ref_clmn, ly_price_at_ref_clmn,
-#                    ly_spend_avg_pr_bgt_vl_clmn, bsl_spend_bsl_pr_bgt_vl_clmn, bsl_spend_bsl_pr_cy_vl_clmn,
-#                    bgt_spend_bgt_pr_bgt_vl_clmn, bgt_spend_bgt_pr_cy_vl_clmn, cy_spend_cy_pr_cy_vl_clmn,
-#                    volume_adjustment_clmn, bsl_inflation_clmn, bgt_savings_clmn, cy_bgt_savings_clmn,
-#                    cy_bsl_savings_clmn, volume_influence_vs_bsl_clmn, volume_influence_vs_bgt_clmn]
-# df_cy = df_cy[df_cy_clmn_list]
+df_cy_clmn_list = [description_clmn, category_clmn, location_clmn, savings_type_clmn, cy_type_report_clmn,
+                   savings_type_clmn, frc_strategy_column,
+                   cy_price_clmn, cy_currency_clmn, cy_price_per_clmn, cy_price_uom_clmn, cy_volume_clmn,
+                   cy_volume_per_clmn, cy_volume_uom_clmn,
+                   bgt_price_clmn, bgt_currency_clmn, bgt_per_clmn, bgt_uom_clmn, bgt_volume_clmn, pred_code_clmn,
+                   bsl_price_ly, bsl_price_clmn, bsl_currency_clmn, bsl_price_per_clmn, bsl_price_uom_clmn,
+                   bsl_pred_code_clmn,
+                   uom_ref_per_price_clmn, uom_ref_uom_price_clmn, uom_ref_currency_clmn, uom_ref_per_volume_clmn,
+                   uom_ref_uom_volume_clmn,
+                   cy_to_ref_mult_price_uom_clmn, cy_to_ref_mult_price_per_clmn, cy_to_ref_mult_currency_clmn,
+                   cy_price_at_ref_clmn,
+                   cy_to_ref_mult_volume_uom_clmn, cy_to_ref_mult_volume_per_clmn, cy_volume_at_ref_clmn,
+                   bgt_to_ref_mult_price_uom_clmn, bgt_to_ref_mult_price_per_clmn, bgt_to_ref_mult_currency_clmn,
+                   bgt_price_at_ref_clmn,
+                   bgt_to_ref_mult_volume_uom_clmn, bgt_to_ref_mult_volume_per_clmn, bgt_volume_at_ref_clmn,
+                   bsl_to_ref_mult_price_uom_clmn, bsl_to_ref_mult_price_per_clmn, bsl_to_ref_mult_currency_clmn,
+                   bsl_price_at_ref_clmn, ly_price_at_ref_clmn,
+                   ly_spend_avg_pr_bgt_vl_clmn, bsl_spend_bsl_pr_bgt_vl_clmn, bsl_spend_bsl_pr_cy_vl_clmn,
+                   bgt_spend_bgt_pr_bgt_vl_clmn, bgt_spend_bgt_pr_cy_vl_clmn, cy_spend_cy_pr_cy_vl_clmn,
+                   volume_adjustment_clmn, bsl_inflation_clmn, bgt_savings_clmn, cy_bgt_savings_clmn,
+                   cy_bsl_savings_clmn, volume_influence_vs_bsl_clmn, volume_influence_vs_bgt_clmn]
+
+df_cy_clmn_list = fc.add_project_to_clmn_list(df_cy_clmn_list, proj_str_code_lt, proj_str_description_lt,
+                                              proj_str_value_lt, pj_layer)
+
+df_cy = df_cy[df_cy_clmn_list]
+df_cy.sort_values(by=[code_clmn, month_clmn], axis=0, inplace=True, ascending=[True, True])
+
+df_pj_clmn_list = [proj_str_description, proj_str_value, pjmp_sav_assignment_type]
+df_pj = df_pj[df_pj_clmn_list]
+df_pj.sort_values(by=[proj_str_code], axis=0, inplace=True, ascending=[True])
 
 ### save on CSV “Savings Report – FY YYYY period XX per PN”) ###
 df_cy.to_csv(filename_cy_csv)
 df_pj.to_csv(filename_pj_csv)
 
-# format excel table
+### save on Excel “Savings Report – FY YYYY period XX ###
+fc.save_excel(filename_cy_pj_xlsx, df_cy, df_pj, sheetname_cy, sheetname_pj, color_list, cy_color_index_for_clmns,
+              cy_color_order, pj_color_index_for_clmns, pj_color_order)
+
 
 ## error msg ##
 error_file_engine = open(filename_error_msg_engine, "w")

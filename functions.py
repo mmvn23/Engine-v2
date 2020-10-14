@@ -196,22 +196,25 @@ def drop_na_crossed(dataframe, ref_clmn, clm_list):
     dataframe = dataframe.filter(items=clm_list, axis=1)
 
     old_index_list = dataframe[ref_clmn]
+
     dataframe = dataframe.dropna(axis=0, inplace=False)
 
-    is_there_nan = any(pd.isnull(old_index_list))
+    # is_there_nan = any(pd.isnull(old_index_list))
 
     old_index_list = dataframe[ref_clmn]
     old_index_list = [str(item) for item in old_index_list]
     old_index_list = remove_from_list(old_index_list, 'nan')
 
     new_index_list = dataframe[ref_clmn]
+
     new_index_list = [str(item) for item in new_index_list]
+
     [missing_codes, are_lists_equal] = list_differential(old_index_list, new_index_list)
 
     new_dataframe = new_dataframe.drop(missing_codes, axis=0)
 
-    if is_there_nan:
-        new_dataframe = new_dataframe.dropna(axis=0, inplace=False)
+    # if is_there_nan:
+    #     new_dataframe = new_dataframe.dropna(axis=0, inplace=False)
 
     return new_dataframe
 
@@ -741,3 +744,113 @@ def create_project_dataframe(df_pj, df_cy, pj_desired_clmn_list, proj_str_descri
     return df_pj
 
 
+def add_project_to_clmn_list(clmn_list, pj_str_code_lt, pj_str_description_lt, pj_str_value_lt, pj_layer):
+
+    for kk in range(0, pj_layer+1):
+        clmn_list.append(pj_str_code_lt[kk])
+        clmn_list.append(pj_str_description_lt[kk])
+        clmn_list.append(pj_str_value_lt[kk])
+
+    return clmn_list
+
+
+def save_excel(filename, df_cy, df_pj, sheetname_cy, sheetname_pj, color_list, cy_color_index_for_clmns, cy_color_order,
+               pj_color_index_for_clmns, pj_color_order):
+
+    # Create a Pandas Excel writer using XlsxWriter as the engine.
+    index_qty_cy = len(df_cy.index.names)
+    index_qty_pj = len(df_pj.index.names)
+
+    cy_color_index_for_clmns.append(index_qty_cy)
+    cy_color_index_for_clmns.sort()
+
+    pj_color_index_for_clmns.append(index_qty_pj)
+    pj_color_index_for_clmns.sort()
+
+    writer = pd.ExcelWriter(filename, engine='xlsxwriter')
+
+    # Convert the dataframe to an XlsxWriter Excel object.
+    df_cy.to_excel(writer, sheet_name=sheetname_cy, float_format="%.2f", startrow=1, startcol=0, merge_cells=False,
+                   freeze_panes={1, 2}, header=False)
+    df_pj.to_excel(writer, sheet_name=sheetname_pj, float_format="%.2f", startrow=1, startcol=0, merge_cells=False,
+                   header=False)
+
+    # Get the xlsxwriter workbook and worksheet objects.
+    workbook = writer.book
+    worksheet_cy = writer.sheets[sheetname_cy]
+    worksheet_pj = writer.sheets[sheetname_pj]
+
+    # first line in bold
+    header_format = workbook.add_format({'align': 'center',
+                                         'border': 1,
+                                         'valign': 'vcenter',
+                                         'bold': True,
+                                         'text_wrap': True})
+
+    # Write the column headers with the defined format.
+
+    for col_num, value in enumerate(df_cy.columns.values):
+        worksheet_cy.write(0, col_num + index_qty_cy, value, header_format)
+
+    for col_num, value in enumerate(df_pj.columns.values):
+        worksheet_pj.write(0, col_num + index_qty_pj, value, header_format)
+
+
+    index_format = workbook.add_format({'align': 'center',
+                                        'text_wrap': True,
+                                        'border': 1,
+                                        'valign': 'middle',
+                                        'num_format': '#,##0.00'})
+    worksheet_cy.set_column(0, index_qty_cy-1, 10, index_format)
+    worksheet_pj.set_column(0, index_qty_pj - 1, 10, index_format)
+
+    color0_format = workbook.add_format({'align': 'center',
+                                         'text_wrap': True,
+                                         'border': 1,
+                                         'valign': 'middle',
+                                         'bg_color': color_list[0],
+                                         'num_format': '#,##0.00'})
+
+    color1_format = workbook.add_format({'align': 'center',
+                                         'text_wrap': True,
+                                         'border': 1,
+                                         'valign': 'middle',
+                                         'bg_color': color_list[1],
+                                         'num_format': '#,##0.00'})
+
+    color2_format = workbook.add_format({'align': 'center',
+                                         'text_wrap': True,
+                                         'border': 1,
+                                         'valign': 'middle',
+                                         'bg_color': color_list[2],
+                                         'num_format': '#,##0.00'})
+
+    color3_format = workbook.add_format({'align': 'center',
+                                         'text_wrap': True,
+                                         'border': 1,
+                                         'valign': 'middle',
+                                         'bg_color': color_list[3],
+                                         'num_format': '#,##0.00'})
+
+    color4_format = workbook.add_format({'align': 'center',
+                                         'text_wrap': True,
+                                         'border': 1,
+                                         'valign': 'middle',
+                                         'bg_color': color_list[4],
+                                         'num_format': '#,##0.00'})
+
+    format_list = [color0_format, color1_format, color2_format, color3_format, color4_format]
+
+    cy_index_clmn = len(cy_color_index_for_clmns)
+    for kk in range(1, cy_index_clmn):
+        worksheet_cy.set_column(cy_color_index_for_clmns[kk-1], cy_color_index_for_clmns[kk]-1, 25,
+                                format_list[cy_color_order[kk-1]])
+
+    pj_index_clmn = len(pj_color_index_for_clmns)
+    for kk in range(1, pj_index_clmn):
+        worksheet_pj.set_column(pj_color_index_for_clmns[kk - 1], pj_color_index_for_clmns[kk] - 1, 25,
+                                format_list[pj_color_order[kk - 1]])
+
+    writer.save()
+
+    return
