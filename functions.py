@@ -277,7 +277,8 @@ def add_all_uom_fx_to_code(dataframe, base_dataframe, code, conv_to_all_str):
     return dataframe
 
 
-def include_predecessors(dataframe, df_pred, pred_code_clmn, extra_clmn_name, code_clmn, month_clmn="empty"):
+def include_predecessors(dataframe, df_pred, pred_code_clmn, extra_clmn_name, code_clmn, month_clmn="empty",
+                         bgt_volume_clmn='empty'):
     new_dataframe = dataframe
     new_dataframe[extra_clmn_name] = new_dataframe.index.get_level_values(code_clmn)
 
@@ -290,7 +291,7 @@ def include_predecessors(dataframe, df_pred, pred_code_clmn, extra_clmn_name, co
     else:
         for item in code_list:
             new_dataframe = include_single_predecessor_double_index(new_dataframe, df_pred, pred_code_clmn, code_clmn,
-                                                                    month_clmn, item)
+                                                                    month_clmn, item, bgt_volume_clmn)
 
     return new_dataframe
 
@@ -309,7 +310,8 @@ def include_single_predecessor_single_index(dataframe, df_pred, pred_code_clmn, 
     return new_dataframe
 
 
-def include_single_predecessor_double_index(dataframe, df_pred, pred_code_clmn, code_clmn, month_clmn, new_code):
+def include_single_predecessor_double_index(dataframe, df_pred, pred_code_clmn, code_clmn, month_clmn, new_code,
+                                            bgt_volume_clmn):
     new_dataframe = dataframe
 
     bgt_pred = df_pred.loc[new_code, pred_code_clmn]
@@ -322,6 +324,8 @@ def include_single_predecessor_double_index(dataframe, df_pred, pred_code_clmn, 
     add_row = new_dataframe.filter(bgt_pred_tuple, axis=0)
     add_row = add_row.reset_index(inplace=False)
     add_row[code_clmn] = new_code
+    if bgt_volume_clmn != 'empty':
+        add_row[bgt_volume_clmn] = 0
     add_row = add_row.set_index(keys=[code_clmn, month_clmn], drop=True, inplace=False)
 
     new_dataframe = new_dataframe.append(add_row)
@@ -522,7 +526,7 @@ def convert_uom(dataframe, df_conv, old_uom_list, new_uom_list, mult_list, conv_
                                 conv_multiplier_clmn, mult_price_uom_clmn)
     dataframe[mult_price_uom_clmn] = 1/dataframe[mult_price_uom_clmn]
 
-    dataframe[mult_price_per_clmn] = dataframe[old_price_per_clmn]/dataframe[new_price_per_clmn]
+    dataframe[mult_price_per_clmn] = dataframe[new_price_per_clmn]/dataframe[old_price_per_clmn]
 
     dataframe = find_multiplier(dataframe, df_conv, code_clmn, old_price_currency_clmn, new_price_currency_clmn,
                                 conv_multiplier_clmn, mult_price_currency_clmn)
@@ -533,7 +537,7 @@ def convert_uom(dataframe, df_conv, old_uom_list, new_uom_list, mult_list, conv_
     if mult_volume_per_clmn != 'empty':
         dataframe = find_multiplier(dataframe, df_conv, code_clmn, old_volume_uom_clmn, new_volume_uom_clmn,
                                     conv_multiplier_clmn, mult_volume_uom_clmn)
-        dataframe[mult_volume_per_clmn] = dataframe[new_volume_per_clmn]/dataframe[old_volume_per_clmn]
+        dataframe[mult_volume_per_clmn] = dataframe[old_volume_per_clmn]/dataframe[new_volume_per_clmn]
         dataframe[new_volume_value_clmn] = dataframe[old_volume_value_clmn] * dataframe[mult_volume_uom_clmn] * \
                                            dataframe[mult_volume_per_clmn]
 
@@ -770,9 +774,9 @@ def save_excel(filename, df_cy, df_pj, sheetname_cy, sheetname_pj, color_list, c
     writer = pd.ExcelWriter(filename, engine='xlsxwriter')
 
     # Convert the dataframe to an XlsxWriter Excel object.
-    df_cy.to_excel(writer, sheet_name=sheetname_cy, float_format="%.2f", startrow=1, startcol=0, merge_cells=False,
+    df_cy.to_excel(writer, sheet_name=sheetname_cy, float_format="%.4f", startrow=1, startcol=0, merge_cells=False,
                    freeze_panes={1, 2}, header=False)
-    df_pj.to_excel(writer, sheet_name=sheetname_pj, float_format="%.2f", startrow=1, startcol=0, merge_cells=False,
+    df_pj.to_excel(writer, sheet_name=sheetname_pj, float_format="%.4f", startrow=1, startcol=0, merge_cells=False,
                    header=False)
 
     # Get the xlsxwriter workbook and worksheet objects.
@@ -809,35 +813,35 @@ def save_excel(filename, df_cy, df_pj, sheetname_cy, sheetname_pj, color_list, c
                                          'border': 1,
                                          'valign': 'middle',
                                          'bg_color': color_list[0],
-                                         'num_format': '#,##0.00'})
+                                         'num_format': '#,##0.00000'})
 
     color1_format = workbook.add_format({'align': 'center',
                                          'text_wrap': True,
                                          'border': 1,
                                          'valign': 'middle',
                                          'bg_color': color_list[1],
-                                         'num_format': '#,##0.00'})
+                                         'num_format': '#,##0.00000'})
 
     color2_format = workbook.add_format({'align': 'center',
                                          'text_wrap': True,
                                          'border': 1,
                                          'valign': 'middle',
                                          'bg_color': color_list[2],
-                                         'num_format': '#,##0.00'})
+                                         'num_format': '#,##0.00000'})
 
     color3_format = workbook.add_format({'align': 'center',
                                          'text_wrap': True,
                                          'border': 1,
                                          'valign': 'middle',
                                          'bg_color': color_list[3],
-                                         'num_format': '#,##0.00'})
+                                         'num_format': '#,##0.00000'})
 
     color4_format = workbook.add_format({'align': 'center',
                                          'text_wrap': True,
                                          'border': 1,
                                          'valign': 'middle',
                                          'bg_color': color_list[4],
-                                         'num_format': '#,##0.00'})
+                                         'num_format': '#,##0.00000'})
 
     format_list = [color0_format, color1_format, color2_format, color3_format, color4_format]
 

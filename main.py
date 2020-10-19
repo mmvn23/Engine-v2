@@ -471,7 +471,7 @@ gen_pj_code_str = 'GP-'
 gen_pj_description_str = '-Negotiations'
 
 color_list = ['fef5a8', 'c5f19a', 'b9d0e8', 'd6bfd4', 'f79494']
-cy_color_index_for_clmns = [9, 16, 22, 28, 33, 36, 37, 39, 40, 43, 44, 46, 47, 50, 51, 52, 59, 65, 68, 71, 74, 77, 80,
+cy_color_index_for_clmns = [9, 16, 22, 28, 33, 36, 37, 39, 40, 43, 44, 46, 47, 50, 51, 52, 58, 65, 68, 71, 74, 77, 80,
                             83]
 cy_color_order = [0, 1, 2, 0, 1, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4, 4, 1, 2, 0, 1, 2, 0, 1, 2]
 pj_color_index_for_clmns = [1, 2, 3, 4]
@@ -954,7 +954,8 @@ df_savings_type_equalizer.set_index(keys=[savings_type_report_clmn], drop=True, 
 
 
 ######################## Include predecessor's data into budget ########################
-df_long_bgt = fc.include_predecessors(df_long_bgt, df_pred, pred_code_clmn, pred_code_clmn, code_clmn, month_clmn)
+df_long_bgt = fc.include_predecessors(df_long_bgt, df_pred, pred_code_clmn, pred_code_clmn, code_clmn, month_clmn,
+                                      bgt_volume_clmn)
 df_bsl = fc.include_predecessors(df_bsl, df_pred, pred_code_clmn, bsl_pred_code_clmn, code_clmn)
 
 ######################## Calculate monthly price forecast ########################
@@ -1415,8 +1416,6 @@ fc.save_excel(filename_cy_pj_xlsx, df_cy, df_pj, sheetname_cy, sheetname_pj, col
 error_file_engine = open(filename_error_msg_engine, "w")
 error_file_engine.write(error_msg_engine)
 error_file_engine.close()
-
-# DOUBLE CHECK CALCULATIONS
 
 #############################                    3) REPORT GENERATOR                       #############################
 
