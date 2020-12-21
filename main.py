@@ -2,6 +2,32 @@ import pandas as pd
 import numpy as np
 import functions as fc
 
+## Cleanse
+##      load
+##      filter columns
+##      filter rows
+##      change column names
+##      convert data types and round float
+##      eliminate NaNs and update error report
+##      eliminate duplicate indexes and update error report
+## Convert
+##      UoM to SI
+##      Current to standard currency
+##      Category to standard reference
+##      Plant to standard reference
+##      Supplier names to standard reference
+##      Supplier plants to standard reference
+## Calculate
+## Save
+
+## Nomenclature
+##      rp_xyxyxy -> a.k.a reports and defined as datasets that will be shown to final user
+##      mtx_xyxyxy -> a.k.a matrices and defined as datasets that will NOT be shown to final user
+##      xyxyxy_clmn -> column names for reports and matrices
+##      xyxyxy_nm -> variables that carry names (expect for columns)
+
+## INPUTS
+
 
 
 
