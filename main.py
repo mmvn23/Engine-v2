@@ -2,33 +2,61 @@ import pandas as pd
 import numpy as np
 import functions as fc
 
-## Cleanse
-##      load
-##      filter columns
-##      filter rows
-##      change column names
-##      convert data types and round float
-##      eliminate NaNs and update error report
-##      eliminate duplicate indexes and update error report
-## Convert
-##      UoM to SI
-##      Current to standard currency
-##      Category to standard reference
-##      Plant to standard reference
-##      Supplier names to standard reference
-##      Supplier plants to standard reference
-## Calculate
-## Save
+# Data loading
+#     Cleanse
+#          load
+#          filter columns
+#          filter rows
+#          change column names
+#          convert data types and round float types
+#          eliminate NaNs and update error report
+#          eliminate duplicate indexes and update error report
+#     Convert
+#          UoM to SI
+#          Current to standard currency
+#          Category to standard reference
+#          Plant to standard reference
+#          Supplier names to standard reference
+#          Supplier plants to standard reference
+#     Calculate
+#     Save
 
-## Nomenclature
-##      rp_xyxyxy -> a.k.a reports and defined as datasets that will be shown to final user
-##      mtx_xyxyxy -> a.k.a matrices and defined as datasets that will NOT be shown to final user
-##      xyxyxy_clmn -> column names for reports and matrices
-##      xyxyxy_nm -> variables that carry names (expect for columns)
+# Nomenclature
+#      rp_xyxyxy -> a.k.a reports and defined as datasets that will be shown to final user
+#      mtx_xyxyxy -> a.k.a matrices and defined as datasets that will NOT be shown to final user
+#      xyxyxy_clmn -> column names for reports and matrices
+#      xyxyxy_nm -> variables that carry names (expect for columns)
 
-## INPUTS
+# INPUTS
+description_dict = 'Description'
+input_folder = 'Input folder'
+input_file = 'Input file'
+output_folder = 'Output folder'
+desired_clmns = 'Desired columns'
+clmn_rename_dict = 'Rename columns dict'
+template_setup = {description_dict: pd.NA,
+                  input_folder: pd.NA,
+                  input_file: pd.NA,
+                  output_folder: pd.NA,
+                  desired_clmns: [pd.NA],
+                  clmn_rename_dict: {pd.NA: pd.NA}}
+
+index_clmn = 'Index'
+input_file_clmn = 'Input file'
+output_report = 'Output report'
+error_msg_clmn = 'Error message'
+
+output_folder_name = 'outputs'
+
+mtx_error_setup = template_setup
+mtx_error_setup[description_dict] = 'MTX error'
+mtx_error_setup[output_folder] = output_folder_name
+mtx_error_setup[desired_clmns] = [index_clmn, input_file_clmn, output_report, error_msg_clmn]
+mtx_error = fc.dataframe_init(mtx_error_setup,
+                              input_file, desired_clmns)
 
 
+print(mtx_error)
 
 
 

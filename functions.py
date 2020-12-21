@@ -3,6 +3,16 @@ import numpy as np
 
 #############################                1) DATA CLEANING                     ######################################
 
+def dataframe_init(dataframe_setup_dict,
+                   input_file, desired_clmns):
+
+    if pd.isna(dataframe_setup_dict[input_file]):
+        dataframe = pd.DataFrame(columns=dataframe_setup_dict[desired_clmns])
+    else:
+        dataframe = [1]
+
+
+    return dataframe
 
 
 
