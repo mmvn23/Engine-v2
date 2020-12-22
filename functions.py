@@ -2,19 +2,138 @@ import pandas as pd
 import numpy as np
 
 #############################                1) DATA CLEANING                     ######################################
+class MyDataframe:
+    def __init__(self, name):
+        self.name = name
+        self.input_folder = pd.NA
+        self.input_file = pd.NA
+        self.input_sheet = pd.NA
+        self.output_folder = pd.NA
+        self.desired_input_clmns = [pd.NA]
+        self.standard_clmns = [pd.NA]
+        self.clmn_rename = {pd.NA: pd.NA}
+        self.clmn_types = {pd.NA: pd.NA}
+        self.dataframe = pd.DataFrame()
 
-def dataframe_init(dataframe_setup_dict,
-                   input_file, desired_clmns):
+    def __str__(self):
+        out_str = "name: {name} \n" \
+                  "input_folder: {input_folder}\n"\
+                  "input_file: {input_file}\n"\
+                  "input_sheet: {input_sheet}\n"\
+                  "output_folder: {output_folder}\n"\
+                  "desired_input_clmns: {desired_input_clmns}\n" \
+                  "standard_clmns: {standard_clmns}\n"\
+                  "clmn_rename: {clmn_rename}\n" \
+                  "clmn_types: {clmn_types}\n\n"\
+                  "dataframe: {dataframe}\n".format(name=self.name,
+                                                    input_folder=self.input_folder,
+                                                    input_file=self.input_file,
+                                                    input_sheet=self.input_sheet,
+                                                    output_folder=self.output_folder,
+                                                    desired_input_clmns=self.desired_input_clmns,
+                                                    standard_clmns=self.standard_clmns,
+                                                    clmn_rename=self.clmn_rename,
+                                                    clmn_types=self.clmn_types,
+                                                    dataframe=self.dataframe)
 
-    if pd.isna(dataframe_setup_dict[input_file]):
-        dataframe = pd.DataFrame(columns=dataframe_setup_dict[desired_clmns])
-    else:
-        dataframe = [1]
+        return out_str
+
+    def dataframe_init(self, key_code_clmn=[], mtx_error=[],
+                       index_clmn=[], input_file_clmn=[], output_report_clmn=[], error_msg_clmn=[]):
+
+        # Data loading
+        #     Cleanse
+        #          load
+        #          filter columns
+        #          change column names
+        #          filter rows
+        #          convert data types and round float types
+        #          eliminate NaNs and update error report
+        #          eliminate duplicate indexes and update error report
+        #     Convert
+        #          UoM to SI
+        #          Current to standard currency
+        #          Category to standard reference
+        #          Plant to standard reference
+        #          Supplier names to standard reference
+        #          Supplier plants to standard reference
+        #     Calculate
+        #     Save
+        error_msg_nan = 'NaN on original file'
+
+        if pd.isna(self.input_file):
+            self.dataframe = pd.DataFrame(columns=self.desired_input_clmns)
+        else:
+            directory = './' + self.input_folder + '/' + self.input_file
+            self.dataframe = pd.read_excel(directory, sheet_name=self.input_sheet)
+            self.dataframe = self.dataframe[self.desired_input_clmns]
+            self.dataframe.rename(columns=self.clmn_rename, inplace=True)
+            self.dataframe.dropna(inplace=True, axis=0, subset=[key_code_clmn])
+            self.convert_columns()
+            [self.dataframe, missing_codes, are_lists_equal] = clean_nan(self.dataframe, key_code_clmn)
+            mtx_error = load_mtx_error(mtx_error, self, missing_codes,
+                                       error_msg_nan,
+                                       index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn)
+
+        return mtx_error
+
+    def convert_columns(self):
+
+        for key, value in self.clmn_types.items():
+            self.dataframe[key].astype(value)
+
+        return
 
 
-    return dataframe
+def load_mtx_error(mtx_error, mtx_xy, missing_codes,
+                   error_msg,
+                   index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn):
+
+    mtx_error_to_append = pd.DataFrame()
+    kk=0
+
+    for item in missing_codes:
+        mtx_error_to_append.loc[kk, index_clmn] = item
+        kk=kk+1
+
+    mtx_error_to_append[input_file_clmn] = mtx_xy.input_file
+    mtx_error_to_append[output_report_clmn] = mtx_xy.name
+    mtx_error_to_append[error_msg_clmn] = error_msg
+
+    mtx_error = mtx_error.dataframe.append(mtx_error_to_append)
+
+    return mtx_error
 
 
+def clean_nan(dataframe, code_clmn, clm_list='empty'):
+
+    if clm_list == 'empty':
+        clm_list = dataframe.columns
+
+    old_part_number_bgt_list = dataframe[code_clmn]
+    old_part_number_bgt_list = [str(item) for item in old_part_number_bgt_list]
+
+    dataframe = dataframe.dropna(inplace=False, subset=clm_list)
+
+    new_part_number_bgt_list = dataframe[code_clmn]
+    new_part_number_bgt_list = [str(item) for item in new_part_number_bgt_list]
+
+    [missing_codes, are_lists_equal] = list_differential(old_part_number_bgt_list, new_part_number_bgt_list)
+
+    return [dataframe, missing_codes, are_lists_equal]
+
+
+def list_differential(old_list, new_list):
+    item_diff = []
+    are_list_equal = True
+
+    for old_item in old_list:
+
+        if old_item not in new_list:
+            item_diff.append(old_item)
+            are_list_equal = False
+
+    return [item_diff, are_list_equal]
 
 # def remove_key_duplicates(old_dataframe, key_column):
 #     new_dataframe = old_dataframe.drop_duplicates(key_column)
@@ -53,17 +172,7 @@ def dataframe_init(dataframe_setup_dict,
 #     return [clmns_to_delete, new_error_list]
 #
 #
-# def list_differential(old_list, new_list):
-#     item_diff = []
-#     are_list_equal = True
-#
-#     for old_item in old_list:
-#
-#         if old_item not in new_list:
-#             item_diff.append(old_item)
-#             are_list_equal = False
-#
-#     return [item_diff, are_list_equal]
+
 #
 #
 # def generate_wide_clmn_expected_list(old_list, start, end, base_string):
@@ -108,21 +217,6 @@ def dataframe_init(dataframe_setup_dict,
 #     return [dataframe, new_error_list]
 #
 #
-# def clean_nan(dataframe, code_clmn, clm_list='empty'):
-#     if clm_list == 'empty':
-#         clm_list = dataframe.columns
-#
-#     old_part_number_bgt_list = dataframe[code_clmn]
-#     old_part_number_bgt_list = [str(item) for item in old_part_number_bgt_list]
-#
-#     dataframe = dataframe.dropna(inplace=False, subset=clm_list)
-#
-#     new_part_number_bgt_list = dataframe[code_clmn]
-#     new_part_number_bgt_list = [str(item) for item in new_part_number_bgt_list]
-#
-#     [missing_codes, are_lists_equal] = list_differential(old_part_number_bgt_list, new_part_number_bgt_list)
-#
-#     return [dataframe, missing_codes, are_lists_equal]
 #
 #
 # def melt_and_index(wide_dataframe, wide_vars, long_clmn, value_clmn, code_clmn):

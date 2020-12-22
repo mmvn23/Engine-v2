@@ -1,26 +1,6 @@
 import pandas as pd
 import numpy as np
 import functions as fc
-
-# Data loading
-#     Cleanse
-#          load
-#          filter columns
-#          filter rows
-#          change column names
-#          convert data types and round float types
-#          eliminate NaNs and update error report
-#          eliminate duplicate indexes and update error report
-#     Convert
-#          UoM to SI
-#          Current to standard currency
-#          Category to standard reference
-#          Plant to standard reference
-#          Supplier names to standard reference
-#          Supplier plants to standard reference
-#     Calculate
-#     Save
-
 # Nomenclature
 #      rp_xyxyxy -> a.k.a reports and defined as datasets that will be shown to final user
 #      mtx_xyxyxy -> a.k.a matrices and defined as datasets that will NOT be shown to final user
@@ -28,35 +8,55 @@ import functions as fc
 #      xyxyxy_nm -> variables that carry names (expect for columns)
 
 # INPUTS
-description_dict = 'Description'
-input_folder = 'Input folder'
-input_file = 'Input file'
-output_folder = 'Output folder'
-desired_clmns = 'Desired columns'
-clmn_rename_dict = 'Rename columns dict'
-template_setup = {description_dict: pd.NA,
-                  input_folder: pd.NA,
-                  input_file: pd.NA,
-                  output_folder: pd.NA,
-                  desired_clmns: [pd.NA],
-                  clmn_rename_dict: {pd.NA: pd.NA}}
 
 index_clmn = 'Index'
 input_file_clmn = 'Input file'
-output_report = 'Output report'
+input_sheet_clmn = 'Input sheet'
+output_report_clmn = 'Output report'
 error_msg_clmn = 'Error message'
+pn_code_clmn = 'Part number code'
+pn_description_clmn = 'Part number description'
+category_l0_clmn = 'Category L0'
+uom_std_clmn = 'SI UoM'
+uom_input_clmn = 'Input UoM'
+uom_output_clmn = 'Output UoM'
 
 output_folder_name = 'outputs'
+input_folder_name = 'inputs'
 
-mtx_error_setup = template_setup
-mtx_error_setup[description_dict] = 'MTX error'
-mtx_error_setup[output_folder] = output_folder_name
-mtx_error_setup[desired_clmns] = [index_clmn, input_file_clmn, output_report, error_msg_clmn]
-mtx_error = fc.dataframe_init(mtx_error_setup,
-                              input_file, desired_clmns)
+mtx_error = fc.MyDataframe('MTX error')
+mtx_error.output_folder = output_folder_name
+mtx_error.desired_input_clmns = [index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn,
+                                       error_msg_clmn]
 
+mtx_part_number = fc.MyDataframe('MTX part number')
+mtx_part_number.input_folder = input_folder_name
+mtx_part_number.input_file = 'System inputs.xlsx'
+mtx_part_number.input_sheet = 'Part-Number List'
+mtx_part_number.output_folder = output_folder_name
+mtx_part_number.desired_input_clmns = ['Part Number Code', 'Part Number Description', 'Category', 'Preferred UoM',
+                                             'SI UoM']
+mtx_part_number.clmn_rename = {mtx_part_number.desired_input_clmns[0]: pn_code_clmn,
+                               mtx_part_number.desired_input_clmns[1]: pn_description_clmn,
+                               mtx_part_number.desired_input_clmns[2]: category_l0_clmn,
+                               mtx_part_number.desired_input_clmns[3]: uom_output_clmn,
+                               mtx_part_number.desired_input_clmns[4]: uom_std_clmn}
+mtx_part_number.clmn_types = {pn_code_clmn: str,
+                              pn_description_clmn: str,
+                              category_l0_clmn: str,
+                              uom_output_clmn: str,
+                              uom_std_clmn: str}
+
+trash = mtx_error.dataframe_init()
+mtx_error.dataframe = mtx_part_number.dataframe_init(key_code_clmn=pn_code_clmn, mtx_error=mtx_error,
+                                           index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                           output_report_clmn=output_report_clmn, error_msg_clmn=error_msg_clmn)
+mtx_part_number.dataframe.set_index(pn_code_clmn, inplace=True)
 
 print(mtx_error)
+print(mtx_part_number)
+
+
 
 
 
