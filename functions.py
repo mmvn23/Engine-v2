@@ -5,21 +5,27 @@ import numpy as np
 
 
 class MyDataframe:
-    def __init__(self, name):
+    def __init__(self, name,
+                 input_folder=pd.NA, input_file=pd.NA, input_sheet=pd.NA,
+                 output_folder=pd.NA, output_format='.csv',
+                 desired_input_clmns=[pd.NA], standard_clmns=[pd.NA], nomenclature_clmns=[pd.NA],
+                 clmn_rename={pd.NA: pd.NA}, clmn_types={pd.NA: pd.NA}):
         self.name = name
-        self.input_folder = pd.NA
-        self.input_file = pd.NA
-        self.input_sheet = pd.NA
-        self.output_folder = pd.NA
-        self.desired_input_clmns = [pd.NA]
-        self.standard_clmns = [pd.NA]
-        self.nomenclature_clmns = [pd.NA]
-        self.clmn_rename = {pd.NA: pd.NA}
-        self.clmn_types = {pd.NA: pd.NA}
+        self.input_folder = input_folder
+        self.input_file = input_file
+        self.input_sheet = input_sheet
+        self.output_folder = output_folder
+        self.output_format = output_format
+        self.desired_input_clmns = desired_input_clmns
+        self.standard_clmns = standard_clmns
+        self.nomenclature_clmns = nomenclature_clmns
+        self.clmn_rename = clmn_rename
+        self.clmn_types = clmn_types
         self.dataframe = pd.DataFrame()
 
     def __str__(self):
-        out_str = "name: {name} \n" \
+        out_str = "******************** \n" \
+                  "name: {name} \n" \
                   "input_folder: {input_folder}\n"\
                   "input_file: {input_file}\n"\
                   "input_sheet: {input_sheet}\n"\
@@ -78,6 +84,12 @@ class MyDataframe:
                                                 key_code_clmn)
 
         return mtx_error
+
+    def save_dataframe(self):
+        directory = './' + self.output_folder + '/' + self.name + self.output_format
+        self.dataframe.to_csv(directory)
+
+        return
 
     def load_mtx_xy(self):
         directory = './' + self.input_folder + '/' + self.input_file
@@ -201,6 +213,14 @@ def merge_and_drop(mtx_xy, df_equalizer,
     [missing_codes, are_lists_equal] = list_differential(old_part_number_bgt_list, new_part_number_bgt_list)
 
     return [mtx_xy, missing_codes]
+
+
+def save_mtx_xy_dataframe_list(mtx_xy_list):
+
+    for item in mtx_xy_list:
+        item.save_dataframe()
+
+    return
 
 # def remove_key_duplicates(old_mtx_xy, key_column):
 #     new_mtx_xy = old_mtx_xy.drop_duplicates(key_column)
