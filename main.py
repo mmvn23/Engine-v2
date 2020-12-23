@@ -20,41 +20,102 @@ category_l0_clmn = 'Category L0'
 uom_std_clmn = 'SI UoM'
 uom_input_clmn = 'Input UoM'
 uom_output_clmn = 'Output UoM'
+original_term_clmn = 'Original term'
+standard_term_clmn = 'Standard term'
+multiplier_clmn = 'Multiplier'
 
 output_folder_name = 'outputs'
 input_folder_name = 'inputs'
+main_input_file = 'System inputs.xlsx'
 
 mtx_error = fc.MyDataframe('MTX error')
 mtx_error.output_folder = output_folder_name
 mtx_error.desired_input_clmns = [index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn,
-                                       error_msg_clmn]
+                                 error_msg_clmn]
+mtx_error.standard_clmns = mtx_error.desired_input_clmns
+
+mtx_nomenclature = fc.MyDataframe('MTX nomenclature')
+mtx_nomenclature.input_folder = input_folder_name
+mtx_nomenclature.input_file = main_input_file
+mtx_nomenclature.input_sheet = 'Nomenclature'
+mtx_nomenclature.output_folder = output_folder_name
+mtx_nomenclature.desired_input_clmns = ['From', 'To']
+mtx_nomenclature.clmn_rename = {mtx_nomenclature.desired_input_clmns[0]: original_term_clmn,
+                                mtx_nomenclature.desired_input_clmns[1]: standard_term_clmn}
+mtx_nomenclature.clmn_types = {original_term_clmn: str,
+                               standard_term_clmn: str}
+mtx_nomenclature.standard_clmns = [original_term_clmn, standard_term_clmn]
+
+mtx_conversion = fc.MyDataframe('MTX conversion')
+mtx_conversion.input_folder = input_folder_name
+mtx_conversion.input_file = main_input_file
+mtx_conversion.input_sheet = 'Conversion'
+mtx_conversion.output_folder = output_folder_name
+mtx_conversion.desired_input_clmns = ['PN', 'From', 'To', 'Multiplier']
+mtx_conversion.clmn_rename = {mtx_conversion.desired_input_clmns[0]: pn_code_clmn,
+                              mtx_conversion.desired_input_clmns[1]: original_term_clmn,
+                              mtx_conversion.desired_input_clmns[2]: standard_term_clmn,
+                              mtx_conversion.desired_input_clmns[3]: multiplier_clmn}
+mtx_conversion.clmn_types = {pn_code_clmn: str,
+                             original_term_clmn: str,
+                             standard_term_clmn: str,
+                             multiplier_clmn: float}
+mtx_conversion.standard_clmns = [pn_code_clmn, original_term_clmn, standard_term_clmn, multiplier_clmn]
 
 mtx_part_number = fc.MyDataframe('MTX part number')
 mtx_part_number.input_folder = input_folder_name
-mtx_part_number.input_file = 'System inputs.xlsx'
+mtx_part_number.input_file = main_input_file
 mtx_part_number.input_sheet = 'Part-Number List'
 mtx_part_number.output_folder = output_folder_name
 mtx_part_number.desired_input_clmns = ['Part Number Code', 'Part Number Description', 'Category', 'Preferred UoM',
-                                             'SI UoM']
+                                       'SI UoM']
 mtx_part_number.clmn_rename = {mtx_part_number.desired_input_clmns[0]: pn_code_clmn,
                                mtx_part_number.desired_input_clmns[1]: pn_description_clmn,
                                mtx_part_number.desired_input_clmns[2]: category_l0_clmn,
                                mtx_part_number.desired_input_clmns[3]: uom_output_clmn,
                                mtx_part_number.desired_input_clmns[4]: uom_std_clmn}
+mtx_part_number.standard_clmns = [pn_code_clmn, pn_description_clmn, category_l0_clmn, uom_std_clmn, uom_output_clmn]
 mtx_part_number.clmn_types = {pn_code_clmn: str,
                               pn_description_clmn: str,
                               category_l0_clmn: str,
                               uom_output_clmn: str,
                               uom_std_clmn: str}
+mtx_part_number.nomenclature_clmns = [category_l0_clmn, uom_std_clmn, uom_output_clmn]
+
+
+
+
+
 
 trash = mtx_error.dataframe_init()
-mtx_error.dataframe = mtx_part_number.dataframe_init(key_code_clmn=pn_code_clmn, mtx_error=mtx_error,
-                                           index_clmn=index_clmn, input_file_clmn=input_file_clmn,
-                                           output_report_clmn=output_report_clmn, error_msg_clmn=error_msg_clmn)
+
+mtx_error = mtx_nomenclature.dataframe_init(key_code_clmn=original_term_clmn, mtx_error=mtx_error,
+                                                      index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                                      output_report_clmn=output_report_clmn,
+                                                      error_msg_clmn=error_msg_clmn)
+
+mtx_error = mtx_conversion.dataframe_init(key_code_clmn=pn_code_clmn, mtx_error=mtx_error,
+                                                    index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                                    output_report_clmn=output_report_clmn,
+                                                    error_msg_clmn=error_msg_clmn)
+mtx_conversion.dataframe.set_index([pn_code_clmn, original_term_clmn, standard_term_clmn], inplace=True)
+
+mtx_error = mtx_part_number.dataframe_init(key_code_clmn=pn_code_clmn, mtx_error=mtx_error,
+                                                     mtx_nomenclature=mtx_nomenclature,
+                                                     index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                                     output_report_clmn=output_report_clmn,
+                                                     error_msg_clmn=error_msg_clmn,
+                                                     original_term_clmn=original_term_clmn)
 mtx_part_number.dataframe.set_index(pn_code_clmn, inplace=True)
 
+
+
+
 print(mtx_error)
+print(mtx_conversion)
+print(mtx_nomenclature)
 print(mtx_part_number)
+
 
 
 
