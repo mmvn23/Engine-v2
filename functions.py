@@ -6,21 +6,31 @@ import numpy as np
 
 class MyDataframe:
     def __init__(self, name,
-                 input_folder=pd.NA, input_file=pd.NA, input_sheet=pd.NA,
+                 input_folder=pd.NA, input_file=pd.NA, input_sheet=pd.NA, input_skiprows=0,
                  output_folder=pd.NA, output_format='.csv',
-                 desired_input_clmns=[pd.NA], standard_clmns=[pd.NA], nomenclature_clmns=[pd.NA],
-                 clmn_rename={pd.NA: pd.NA}, clmn_types={pd.NA: pd.NA}):
+                 key_code_clmns=[pd.NA], desired_input_clmns=[pd.NA], standard_clmns=[pd.NA],
+                 nomenclature_clmns=[pd.NA],
+                 clmn_rename={pd.NA: pd.NA}, clmn_types={pd.NA: pd.NA},
+                 clmn_uom_conversion={pd.NA: [pd.NA, pd.NA, pd.NA]}):
+        # clmn_uom_conversion -> {dict_key: [L0, L1, L2]}
+        # dict_key -> clmn name with float at input UoM (to be converted)
+        # L0 -> clmn name with float at SI UoM
+        # L1 -> clmn name of input UoM
+        # L2  -> clmn name of standard UoM
         self.name = name
         self.input_folder = input_folder
         self.input_file = input_file
         self.input_sheet = input_sheet
+        self.input_skiprows = input_skiprows
         self.output_folder = output_folder
         self.output_format = output_format
+        self.key_code_clmns = key_code_clmns
         self.desired_input_clmns = desired_input_clmns
         self.standard_clmns = standard_clmns
         self.nomenclature_clmns = nomenclature_clmns
         self.clmn_rename = clmn_rename
         self.clmn_types = clmn_types
+        self.clmn_uom_conversion = clmn_uom_conversion
         self.dataframe = pd.DataFrame()
 
     def __str__(self):
@@ -34,7 +44,8 @@ class MyDataframe:
                   "standard_clmns: {standard_clmns}\n" \
                   "nomenclature_clmns: {nomenclature_clmns}\n" \
                   "clmn_rename: {clmn_rename}\n" \
-                  "clmn_types: {clmn_types}\n\n"\
+                  "clmn_types: {clmn_types}\n"\
+                  "clmn_uom_conversion: {clmn_uom_conversion}\n\n"\
                   "dataframe: {dataframe}\n".format(name=self.name,
                                                     input_folder=self.input_folder,
                                                     input_file=self.input_file,
@@ -45,13 +56,16 @@ class MyDataframe:
                                                     nomenclature_clmns=self.nomenclature_clmns,
                                                     clmn_rename=self.clmn_rename,
                                                     clmn_types=self.clmn_types,
+                                                    clmn_uom_conversion=self.clmn_uom_conversion,
                                                     dataframe=self.dataframe)
 
         return out_str
 
-    def dataframe_init(self, key_code_clmn=[], mtx_error=[], mtx_nomenclature=[],
-                    index_clmn=[], input_file_clmn=[], output_report_clmn=[], error_msg_clmn=[],
+    def dataframe_init(self, mtx_error=[], mtx_nomenclature=[], mtx_conversion=[], mtx_part_number=[],
+                       pn_code_clmn=[], uom_si_clmn=[],
+                    index_clmn=[], input_file_clmn=[], input_sheet_clmn=[], output_report_clmn=[], error_msg_clmn=[],
                     original_term_clmn=[]):
+
         # Data loading
         #     Cleanse
         #          load
@@ -75,13 +89,18 @@ class MyDataframe:
             self.dataframe = pd.DataFrame(columns=self.desired_input_clmns)
         else:
             self.load_mtx_xy()
-            mtx_error = self.cleanse_mtx_xy(mtx_error, key_code_clmn,
-                                            index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn)
+            mtx_error = self.cleanse_mtx_xy(mtx_error,
+                                            index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn, error_msg_clmn)
 
             mtx_error = self.apply_nomenclature(mtx_error, mtx_nomenclature,
                                                 original_term_clmn,
-                                                index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn,
-                                                key_code_clmn)
+                                                index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn, error_msg_clmn)
+
+            # old_value_clmn = list(self.clmn_uom_conversion.keys())[0]
+            # if not pd.isna(old_value_clmn):
+            #     mtx_error = self.convert_uom_to_si(mtx_error, mtx_conversion, mtx_part_number,
+            #                                        pn_code_clmn, uom_si_clmn,
+            #                                  index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn)
 
         return mtx_error
 
@@ -93,62 +112,110 @@ class MyDataframe:
 
     def load_mtx_xy(self):
         directory = './' + self.input_folder + '/' + self.input_file
-        self.dataframe = pd.read_excel(directory, sheet_name=self.input_sheet)
+        self.dataframe = pd.read_excel(directory, sheet_name=self.input_sheet, skiprows=self.input_skiprows)
         self.dataframe = self.dataframe[self.desired_input_clmns]
         
         return
 
-    def cleanse_mtx_xy(self, mtx_error, key_code_clmn,
-                       index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn):
-        error_msg_nan = 'NaN on original file'
+    def cleanse_mtx_xy(self, mtx_error,
+                       index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn, error_msg_clmn):
+        error_msg_nan = 'CLEANSE: NaN on original file'
         self.dataframe.rename(columns=self.clmn_rename, inplace=True)
         self.dataframe = self.dataframe[self.standard_clmns]
-        self.dataframe.dropna(inplace=True, axis=0, subset=[key_code_clmn])
-        self.convert_columns()
-        [self.dataframe, missing_codes, are_lists_equal] = clean_nan(self.dataframe, key_code_clmn)
+        self.dataframe.dropna(inplace=True, axis=0, subset=self.key_code_clmns)
+        self.assure_type_input()
+        missing_codes = []
+
+        for item in self.key_code_clmns:
+            [self.dataframe, missing_codes_to_append, are_lists_equal] = clean_nan(self.dataframe, item)
+            missing_codes.append(missing_codes_to_append)
 
         mtx_error = load_mtx_error(mtx_error, self, missing_codes,
                                    error_msg_nan,
-                                   index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn)
+                                   index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn, error_msg_clmn)
         return mtx_error
 
     def apply_nomenclature(self, mtx_error, mtx_nomenclature,
                            original_term_clmn,
-                           index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn, key_code_clmn):
+                           index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn, error_msg_clmn):
 
         if not pd.isna(self.nomenclature_clmns[0]):
-            missing_codes = []
-            error_msg_nan = 'Nomenclature not found'
+            # missing_codes = []
+            error_msg_nomenclature = 'Nomenclature not found'
 
-            for item in self.nomenclature_clmns:
-                [self.dataframe, missing_codes_to_append] = merge_and_drop(self.dataframe, mtx_nomenclature.dataframe,
-                                                                           item,
-                                                                           original_term_clmn, item, key_code_clmn)
-                missing_codes.append(missing_codes_to_append)
+            item_key_code = self.key_code_clmns[0]
+
+            for item_nomenclature in self.nomenclature_clmns:
+
+                self.dataframe = merge_and_drop(self.dataframe, mtx_nomenclature.dataframe, item_nomenclature,
+                                                original_term_clmn, item_nomenclature, item_key_code)
+
+            [self.dataframe, missing_codes, are_lists_equal] = clean_nan(self.dataframe, item_key_code)
 
             mtx_error = load_mtx_error(mtx_error, self, missing_codes,
-                                   error_msg_nan,
-                                   index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn)
-
+                                       error_msg_nomenclature,
+                                       index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn,
+                                       error_msg_clmn)
         return mtx_error
 
-    def convert_columns(self):
+    def assure_type_input(self):
 
         for key, value in self.clmn_types.items():
             self.dataframe[key].astype(value)
 
         return
 
+    def convert_uom_to_si(self, mtx_error, mtx_conversion, mtx_part_number,
+                          pn_code_clmn, uom_si_clmn,
+                          index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn):
+        # clmn_uom_conversion = {pd.NA: [pd.NA, pd.NA, pd.NA]}):
+        # # clmn_uom_conversion -> {dict_key: [L0, L1, L2]}
+        # # dict_key -> clmn name with float at input UoM (to be converted)
+        # # L0 -> clmn name with float at SI UoM
+        # # L1 -> clmn name of input UoM
+        # # L2  -> clmn name of standard UoM
+
+        # add columns: standard UoM, value at standard UoM OK
+        # access mtx_part_number to get standard UoM OK
+        # add column: multiplier
+        # find multiplier
+        # apply multiplier to value at standard UoM
+        # drop multiplier
+        # clear NaN
+        # update mtx_error
+        old_value_clmn = list(self.clmn_uom_conversion.keys())[0]
+        value_list = list(self.clmn_uom_conversion.values())[0]
+        new_value_clmn = value_list[0]
+        old_uom_clmn = value_list[1]
+        new_uom_clmn = value_list[2]
+
+        # original_value_clmn =
+
+        mtx_uom_si = mtx_part_number.dataframe.reset_index()
+        mtx_uom_si = mtx_uom_si[[pn_code_clmn, uom_si_clmn]]
+        mtx_xy = self.dataframe
+
+        mtx_xy = merge_and_drop(mtx_xy,  mtx_uom_si,
+                                                 pn_code_clmn, pn_code_clmn, uom_si_clmn, pn_code_clmn)
+        self.dataframe = mtx_xy.set_index(pn_code_clmn)
+
+        self.dataframe[new_value_clmn] = 0
+        return mtx_error
+
 
 def load_mtx_error(mtx_error, mtx_xy, missing_codes,
                    error_msg,
-                   index_clmn, input_file_clmn, output_report_clmn, error_msg_clmn):
+                   index_clmn, input_file_clmn, input_sheet_clmn, output_report_clmn, error_msg_clmn):
 
-    mtx_error_to_append = pd.DataFrame()
+    mtx_error_to_append = pd.DataFrame(columns=[index_clmn])
     kk=0
 
-    mtx_error_to_append[index_clmn] = missing_codes
+    for item in list(missing_codes):
+        mtx_error_to_append.loc[kk, index_clmn] = item
+        kk = kk+1
+
     mtx_error_to_append[input_file_clmn] = mtx_xy.input_file
+    mtx_error_to_append[input_sheet_clmn] = mtx_xy.input_sheet
     mtx_error_to_append[output_report_clmn] = mtx_xy.name
     mtx_error_to_append[error_msg_clmn] = error_msg
 
@@ -194,25 +261,26 @@ def list_differential(old_list, new_list):
 def merge_and_drop(mtx_xy, df_equalizer,
                    df_merge_clmn, equalizer_merge_clmn, new_clmn_name, code_clmn):
 
-    old_part_number_bgt_list = mtx_xy[code_clmn]
-    old_part_number_bgt_list = [str(item) for item in old_part_number_bgt_list]
+    # old_part_number_bgt_list = mtx_xy[code_clmn]
+    # old_part_number_bgt_list = [str(item) for item in old_part_number_bgt_list]
 
     mtx_xy = mtx_xy.merge(df_equalizer, how='left', left_on=df_merge_clmn, right_on=equalizer_merge_clmn)
 
-    if df_merge_clmn in mtx_xy.columns:
+    if df_merge_clmn != code_clmn and df_merge_clmn in mtx_xy.columns:
         mtx_xy = mtx_xy.drop(df_merge_clmn, axis=1, inplace=False)
-    if equalizer_merge_clmn in mtx_xy.columns:
+    if equalizer_merge_clmn != code_clmn and equalizer_merge_clmn in mtx_xy.columns:
         mtx_xy = mtx_xy.drop(equalizer_merge_clmn, axis=1, inplace=False)
+
     equalizer_clmn_names = df_equalizer.columns
 
     mtx_xy = mtx_xy.rename(columns={equalizer_clmn_names[1]: new_clmn_name}, inplace=False)
 
-    new_part_number_bgt_list = mtx_xy[code_clmn]
-    new_part_number_bgt_list = [str(item) for item in new_part_number_bgt_list]
+    # new_part_number_bgt_list = mtx_xy[code_clmn]
+    # new_part_number_bgt_list = [str(item) for item in new_part_number_bgt_list]
+    #
+    # [missing_codes, are_lists_equal] = list_differential(old_part_number_bgt_list, new_part_number_bgt_list)
 
-    [missing_codes, are_lists_equal] = list_differential(old_part_number_bgt_list, new_part_number_bgt_list)
-
-    return [mtx_xy, missing_codes]
+    return mtx_xy
 
 
 def save_mtx_xy_dataframe_list(mtx_xy_list):
@@ -221,6 +289,14 @@ def save_mtx_xy_dataframe_list(mtx_xy_list):
         item.save_dataframe()
 
     return
+
+
+# def find_multiplier(df_conversion, pn_code_clmn, old_uom, new_uom,
+#                           gen_pn):
+#     mtx_xy = df_base.filter(items=[code_clmn, ref_uom, ref_currency], axis=1)
+#     mtx_xy = mtx_xy.rename(columns={ref_uom: ref_uom_str, ref_currency: ref_currency_str}, inplace=False)
+#
+#     return mtx_xy
 
 # def remove_key_duplicates(old_mtx_xy, key_column):
 #     new_mtx_xy = old_mtx_xy.drop_duplicates(key_column)
@@ -414,11 +490,6 @@ def save_mtx_xy_dataframe_list(mtx_xy_list):
 #     return [mtx_xy, new_error_list]
 #
 #
-# def generate_uom_ref_file(df_base, code_clmn, ref_uom, ref_currency, ref_uom_str, ref_currency_str):
-#     mtx_xy = df_base.filter(items=[code_clmn, ref_uom, ref_currency], axis=1)
-#     mtx_xy = mtx_xy.rename(columns={ref_uom: ref_uom_str, ref_currency: ref_currency_str}, inplace=False)
-#
-#     return mtx_xy
 #
 #
 # def prepare_long_uom_ref_file(df_conv_short, code_list, code_clmn, conv_old_uom_clmn, conv_new_uom_clmn,

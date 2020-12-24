@@ -7,8 +7,9 @@ import functions as fc
 #      xyxyxy_clmn -> column names for reports and matrices
 #      xyxyxy_nm -> variables that carry names (expect for columns)
 
-# INPUTS
+is_mtx_ppv_histocal_volume_to_be_loaded = True
 
+# INPUTS
 index_clmn = 'Index'
 input_file_clmn = 'Input file'
 input_sheet_clmn = 'Input sheet'
@@ -24,7 +25,7 @@ vendor_description_clmn = 'Vendor description'
 month_clmn = 'Month'
 category_l0_clmn = 'Category L0'
 location_l0_clmn = 'Location L0'
-uom_std_clmn = 'SI UoM'
+uom_si_clmn = 'SI UoM'
 volume_uom_si_clmn = 'Volume at SI UoM'
 uom_input_clmn = 'Input UoM'
 volume_uom_input_clmn = 'Volume at input UoM'
@@ -53,6 +54,7 @@ mtx_nomenclature = fc.MyDataframe(name='MTX nomenclature',
                                   input_file=main_input_file,
                                   input_sheet='Nomenclature',
                                   output_folder=output_folder_name_mtx,
+                                  key_code_clmns=[original_term_clmn],
                                   desired_input_clmns=mtx_nomenclature_desired_input_clmns,
                                   clmn_rename={mtx_nomenclature_desired_input_clmns[0]: original_term_clmn,
                                                mtx_nomenclature_desired_input_clmns[1]: standard_term_clmn},
@@ -67,6 +69,7 @@ mtx_conversion = fc.MyDataframe(name='MTX conversion',
                                 input_file=main_input_file,
                                 input_sheet='Conversion',
                                 output_folder=output_folder_name_mtx,
+                                key_code_clmns=[pn_code_clmn],
                                 desired_input_clmns=mtx_conversion_desired_input_clmns,
                                 clmn_rename={mtx_conversion_desired_input_clmns[0]: pn_code_clmn,
                                              mtx_conversion_desired_input_clmns[1]: original_term_clmn,
@@ -86,20 +89,21 @@ mtx_part_number = fc.MyDataframe(name='MTX part number',
                                  input_file=main_input_file,
                                  input_sheet='Part-Number List',
                                  output_folder=output_folder_name_mtx,
+                                 key_code_clmns=[pn_code_clmn],
                                  desired_input_clmns=mtx_part_number_desired_input_clmns,
                                  clmn_rename={mtx_part_number_desired_input_clmns[0]: pn_code_clmn,
                                               mtx_part_number_desired_input_clmns[1]: pn_description_clmn,
                                               mtx_part_number_desired_input_clmns[2]: category_l0_clmn,
                                               mtx_part_number_desired_input_clmns[3]: uom_output_clmn,
-                                              mtx_part_number_desired_input_clmns[4]: uom_std_clmn},
-                                 standard_clmns=[pn_code_clmn, pn_description_clmn, category_l0_clmn, uom_std_clmn,
+                                              mtx_part_number_desired_input_clmns[4]: uom_si_clmn},
+                                 standard_clmns=[pn_code_clmn, pn_description_clmn, category_l0_clmn, uom_si_clmn,
                                                  uom_output_clmn],
                                  clmn_types={pn_code_clmn: str,
                                              pn_description_clmn: str,
                                              category_l0_clmn: str,
                                              uom_output_clmn: str,
-                                             uom_std_clmn: str},
-                                 nomenclature_clmns=[category_l0_clmn, uom_std_clmn, uom_output_clmn])
+                                             uom_si_clmn: str},
+                                 nomenclature_clmns=[category_l0_clmn, uom_si_clmn, uom_output_clmn])
 mtx_xy_list.append(mtx_part_number)
 
 mtx_vendor_desired_input_clmns = ['Vendor Code', 'Vendor Description']
@@ -108,6 +112,7 @@ mtx_vendor = fc.MyDataframe(name='MTX vendor',
                             input_file=main_input_file,
                             input_sheet='Vendor List',
                             output_folder=output_folder_name_mtx,
+                            key_code_clmns=[vendor_code_clmn],
                             desired_input_clmns=mtx_vendor_desired_input_clmns,
                             clmn_rename={mtx_vendor_desired_input_clmns[0]: vendor_code_clmn,
                                          mtx_vendor_desired_input_clmns[1]: vendor_description_clmn},
@@ -116,85 +121,103 @@ mtx_vendor = fc.MyDataframe(name='MTX vendor',
                                         vendor_description_clmn: str})
 mtx_xy_list.append(mtx_vendor)
 
-# for mtx_ppv_historical_volumes
-# mtx_vendor_desired_input_clmns = ['Document number', 'Purchasing doc.', 'Material number', 'Plant',
-#                                   'Period', 'Material Group descr', 'Vendor number', '(FI) Quantity',
-#                                   '(FI) Base unit']
-# clmn_rename={mtx_vendor_desired_input_clmns[0]: invoice_code_clmn,
-#                                          mtx_vendor_desired_input_clmns[1]: po_code_clmn,
-#                                          mtx_vendor_desired_input_clmns[2]: pn_code_clmn,
-#                                          mtx_vendor_desired_input_clmns[3]: location_l0_clmn,
-#                                          mtx_vendor_desired_input_clmns[4]: month_clmn,
-#                                          mtx_vendor_desired_input_clmns[5]: material_group_code_clmn,
-#                                          mtx_vendor_desired_input_clmns[6]: vendor_code_clmn,
-#                                          mtx_vendor_desired_input_clmns[7]: volume_uom_input_clmn,
-#                                          mtx_vendor_desired_input_clmns[8]: uom_input_clmn},
-#                             standard_clmns=[invoice_code_clmn, po_code_clmn, pn_code_clmn, location_l0_clmn, month_clmn,
-#                                             material_group_code_clmn, vendor_code_clmn, volume_uom_input_clmn, uom_input_clmn]
+
+if is_mtx_ppv_histocal_volume_to_be_loaded:
+    mtx_ppv_historical_volume_desired_input_clmns = ['Document number', 'Purchasing doc.', 'Material number', 'Plant',
+                                                  'Period', 'Material Group descr', 'Vendor number', '(FI) Quantity',
+                                                  '(FI) Base unit']
+    mtx_ppv_historical_volume = fc.MyDataframe(name='MTX PPV historical volumes',
+                                               input_folder=input_folder_name,
+                                               input_file='zfi302.xlsx',
+                                               input_sheet='(3) YTD',
+                                               input_skiprows=2,
+                                               output_folder=output_folder_name_mtx,
+                                               key_code_clmns=[invoice_code_clmn, po_code_clmn, pn_code_clmn],
+                                               desired_input_clmns=mtx_ppv_historical_volume_desired_input_clmns,
+                                               clmn_rename={mtx_ppv_historical_volume_desired_input_clmns[0]: invoice_code_clmn,
+                                                        mtx_ppv_historical_volume_desired_input_clmns[1]: po_code_clmn,
+                                                        mtx_ppv_historical_volume_desired_input_clmns[2]: pn_code_clmn,
+                                                        mtx_ppv_historical_volume_desired_input_clmns[3]: location_l0_clmn,
+                                                        mtx_ppv_historical_volume_desired_input_clmns[4]: month_clmn,
+                                                        mtx_ppv_historical_volume_desired_input_clmns[5]: material_group_code_clmn,
+                                                        mtx_ppv_historical_volume_desired_input_clmns[6]: vendor_code_clmn,
+                                                        mtx_ppv_historical_volume_desired_input_clmns[7]: volume_uom_input_clmn,
+                                                        mtx_ppv_historical_volume_desired_input_clmns[8]: uom_input_clmn},
+                                               standard_clmns=[invoice_code_clmn, po_code_clmn, pn_code_clmn,
+                                                           location_l0_clmn, month_clmn,
+                                                           material_group_code_clmn, vendor_code_clmn,
+                                                           volume_uom_input_clmn, uom_input_clmn],
+                                               nomenclature_clmns=[location_l0_clmn, uom_input_clmn],
+                                               clmn_types={invoice_code_clmn: str,
+                                                       po_code_clmn: str,
+                                                       pn_code_clmn: str,
+                                                       location_l0_clmn: str,
+                                                       month_clmn: int,
+                                                       material_group_code_clmn: str,
+                                                       vendor_code_clmn: str,
+                                                       volume_uom_input_clmn: float,
+                                                       uom_input_clmn: str},
+                                               clmn_uom_conversion={volume_uom_input_clmn:
+                                                                    [volume_uom_si_clmn, uom_input_clmn, uom_si_clmn]})
+    mtx_xy_list.append(mtx_ppv_historical_volume)
+
+
+
+# conversions
+
+
+
+
+
 
 trash = mtx_error.dataframe_init()
 
-mtx_error = mtx_nomenclature.dataframe_init(key_code_clmn=original_term_clmn, mtx_error=mtx_error,
+mtx_error = mtx_nomenclature.dataframe_init(mtx_error=mtx_error,
                                             index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                            input_sheet_clmn=input_sheet_clmn,
                                             output_report_clmn=output_report_clmn,
                                             error_msg_clmn=error_msg_clmn)
 
-mtx_error = mtx_conversion.dataframe_init(key_code_clmn=pn_code_clmn, mtx_error=mtx_error,
+mtx_error = mtx_conversion.dataframe_init(mtx_error=mtx_error,
                                           index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                          input_sheet_clmn=input_sheet_clmn,
                                           output_report_clmn=output_report_clmn,
                                           error_msg_clmn=error_msg_clmn)
 mtx_conversion.dataframe.set_index([pn_code_clmn, original_term_clmn, standard_term_clmn], inplace=True)
 
-mtx_error = mtx_part_number.dataframe_init(key_code_clmn=pn_code_clmn, mtx_error=mtx_error,
+mtx_error = mtx_part_number.dataframe_init(mtx_error=mtx_error,
                                            mtx_nomenclature=mtx_nomenclature,
                                            index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                           input_sheet_clmn=input_sheet_clmn,
                                            output_report_clmn=output_report_clmn,
                                            error_msg_clmn=error_msg_clmn,
                                            original_term_clmn=original_term_clmn)
 mtx_part_number.dataframe.set_index(pn_code_clmn, inplace=True)
 
-mtx_error = mtx_vendor.dataframe_init(key_code_clmn=vendor_code_clmn, mtx_error=mtx_error,
+mtx_error = mtx_vendor.dataframe_init(mtx_error=mtx_error,
                                       mtx_nomenclature=mtx_nomenclature,
                                       index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                      input_sheet_clmn=input_sheet_clmn,
                                       output_report_clmn=output_report_clmn,
                                       error_msg_clmn=error_msg_clmn,
                                       original_term_clmn=original_term_clmn)
 mtx_vendor.dataframe.set_index(vendor_code_clmn, inplace=True)
 
+if is_mtx_ppv_histocal_volume_to_be_loaded:
+    mtx_error = mtx_ppv_historical_volume.dataframe_init(mtx_error=mtx_error,
+                                                         mtx_nomenclature=mtx_nomenclature,
+                                                         mtx_part_number=mtx_part_number,
+                                                         pn_code_clmn=pn_code_clmn, uom_si_clmn=uom_si_clmn,
+                                                         index_clmn=index_clmn, input_file_clmn=input_file_clmn,
+                                                         input_sheet_clmn=input_sheet_clmn,
+                                                         output_report_clmn=output_report_clmn,
+                                                         error_msg_clmn=error_msg_clmn,
+                                                         original_term_clmn=original_term_clmn)
+    # mtx_ppv_historical_volume.dataframe.set_index(ppv_historical_volume_code_clmn, inplace=True)
+
+
 
 fc.save_mtx_xy_dataframe_list(mtx_xy_list)
-
-print(mtx_error)
-print(mtx_conversion)
-print(mtx_nomenclature)
-print(mtx_part_number)
-print(mtx_vendor)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # # import seaborn as sns
 # # import matplotlib.pyplot as plt
