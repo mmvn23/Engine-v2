@@ -26,3 +26,8 @@
 
 
 # NEXT STEPS
+
+# problem looking for SI UoM for mash codes -> create additional support matrices
+# group setup_dicts in order to avoid input mistakes
+# init_mtx_distillation_schedule
+# init_mtx_bill_of_materials
